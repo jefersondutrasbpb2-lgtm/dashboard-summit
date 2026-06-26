@@ -113,7 +113,8 @@ body{
 .utm-section:last-child{margin-bottom:0}
 .utm-label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:9px;font-weight:600}
 .bar-item{display:flex;align-items:center;gap:9px;margin-bottom:7px}
-.bar-name{font-size:11.5px;color:var(--muted);width:85px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.bar-name{font-size:11.5px;color:var(--muted);width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.bar-name.wide{width:230px}
 .bar-track{flex:1;height:6px;background:var(--bg3);border-radius:4px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(.16,1,.3,1)}
 .bar-val{font-size:11px;color:var(--muted);font-family:var(--mono);width:54px;text-align:right;flex-shrink:0}
@@ -265,11 +266,11 @@ function sClass(s) {
 function topN(obj,n) {
   return Object.entries(obj).sort(function(a,b){return b[1]-a[1];}).slice(0,n);
 }
-function barList(items, max, color) {
+function barList(items, max, color, wide) {
   if (!items.length) return '<div class="no-data">Sem dados</div>';
   return items.map(function(it) {
     var pct = Math.round((it[1]/max)*100);
-    return '<div class="bar-item"><div class="bar-name" title="'+it[0]+'">'+it[0]+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><div class="bar-val">'+fmtShort(it[1])+'</div></div>';
+    return '<div class="bar-item"><div class="bar-name'+(wide?' wide':'')+'" title="'+it[0]+'">'+it[0]+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><div class="bar-val">'+fmtShort(it[1])+'</div></div>';
   }).join('');
 }
 function destroyChart(key) {
@@ -283,7 +284,7 @@ function render(rows) {
   var semVendas = !filtered.length;
 
   var receitaAp=0,qtdAp=0,qtdCn=0,qtdRe=0,qtdTotal=0,ingressosAp=0;
-  var porDia={},porProd={},porSource={},porMedium={},porCamp={};
+  var porDia={},porProd={},porSource={},porMedium={},porCamp={},porTerm={},porContent={};
   var porPagto={},porCupom={},porIngresso={};
   var transacoes=[];
   var receitaCn=0;
@@ -296,6 +297,8 @@ function render(rows) {
     var source = g(r,C.utmSource)||'direto';
     var medium = g(r,C.utmMedium)||'direto';
     var camp = g(r,C.utmCampaign)||'sem campanha';
+    var term = g(r,C.utmTerm)||'sem term';
+    var content = g(r,C.utmContent)||'sem content';
     var nome = g(r,C.nomeComprador)||'—';
     var pagto = g(r,C.metodoPagamento)||'não informado';
     var cupom = g(r,C.cupom)||'sem cupom';
@@ -319,6 +322,8 @@ function render(rows) {
       porSource[source]=(porSource[source]||0)+total;
       porMedium[medium]=(porMedium[medium]||0)+total;
       porCamp[camp]=(porCamp[camp]||0)+total;
+      porTerm[term]=(porTerm[term]||0)+total;
+      porContent[content]=(porContent[content]||0)+total;
       if (!porPagto[pagto]) porPagto[pagto]={qtd:0,val:0};
       porPagto[pagto].qtd++;
       porPagto[pagto].val+=total;
@@ -346,6 +351,7 @@ function render(rows) {
   var cnData = dias.map(function(d){return porDia[d]?porDia[d].cn:0;});
 
   var topProd=topN(porProd,6),topSource=topN(porSource,5),topMedium=topN(porMedium,4),topCamp=topN(porCamp,6);
+  var topTerm=topN(porTerm,6),topContent=topN(porContent,6);
   var topPagto=topN(Object.fromEntries(Object.entries(porPagto).map(function(e){return [e[0],e[1].val];})),5);
   var topCupom=topN(Object.fromEntries(Object.entries(porCupom).map(function(e){return [e[0],e[1].val];})),6);
   var topIngresso=topN(porIngresso,6);
@@ -354,6 +360,8 @@ function render(rows) {
   var maxSource=topSource.length?topSource[0][1]:1;
   var maxMedium=topMedium.length?topMedium[0][1]:1;
   var maxCamp=topCamp.length?topCamp[0][1]:1;
+  var maxTerm=topTerm.length?topTerm[0][1]:1;
+  var maxContent=topContent.length?topContent[0][1]:1;
   var maxPagto=topPagto.length?topPagto[0][1]:1;
   var maxCupom=topCupom.length?topCupom[0][1]:1;
   var maxIngresso=topIngresso.length?topIngresso[0][1]:1;
@@ -418,8 +426,8 @@ function render(rows) {
     '<div class="row2">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Vendas por dia</div><div class="card-sub">aprovadas vs cancelamentos</div></div></div><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Desempenho UTM</div><div class="card-sub">receita por origem</div></div></div>' +
-        '<div class="utm-section"><div class="utm-label">Source</div>'+barList(topSource,maxSource,'var(--accent)')+'</div>' +
-        '<div class="utm-section"><div class="utm-label">Medium</div>'+barList(topMedium,maxMedium,'var(--purple)')+'</div>' +
+        '<div class="utm-section"><div class="utm-label">Source</div>'+barList(topSource,maxSource,'var(--accent)',true)+'</div>' +
+        '<div class="utm-section"><div class="utm-label">Medium</div>'+barList(topMedium,maxMedium,'var(--purple)',true)+'</div>' +
       '</div>' +
     '</div>' +
 
@@ -427,7 +435,13 @@ function render(rows) {
     '<div class="row3">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Receita por produto</div><div class="card-sub">valor aprovado</div></div></div>'+prodRows+'</div>' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Ingressos vendidos</div><div class="card-sub">quantidade por tipo</div></div></div>'+ingressoRows+'</div>' +
-      '<div class="card"><div class="card-header"><div><div class="card-title">Top campaigns</div><div class="card-sub">UTM Campaign</div></div></div>'+barList(topCamp,maxCamp,'#3ee08f')+'</div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Top campaigns</div><div class="card-sub">UTM Campaign</div></div></div>'+barList(topCamp,maxCamp,'#3ee08f',true)+'</div>' +
+    '</div>' +
+
+    // LINHA: term + content
+    '<div class="row2">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">UTM Term</div><div class="card-sub">receita por termo</div></div></div>'+barList(topTerm,maxTerm,'#ffc24b',true)+'</div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">UTM Content</div><div class="card-sub">receita por conteúdo</div></div></div>'+barList(topContent,maxContent,'#ff6b7a',true)+'</div>' +
     '</div>' +
 
     // LINHA: tabela + pagamento + cupom
