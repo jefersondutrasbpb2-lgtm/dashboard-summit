@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Summit Paraíba 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0e0f11;--bg2:#16181c;--bg3:#1e2026;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#f0efe8;--muted:#7a7d85;--muted2:#555860;--accent:#4f8ef7;--accent2:#2563eb;--green:#34d399;--green-bg:rgba(52,211,153,0.1);--red:#f87171;--red-bg:rgba(248,113,113,0.1);--amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);--purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--teal:#2dd4bf;--teal-bg:rgba(45,212,191,0.1);--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;--radius:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+.shell{max-width:1320px;margin:0 auto;padding:24px 28px 48px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-dot{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff}
+.brand-name{font-size:15px;font-weight:500}
+.brand-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filter-group{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{font-family:var(--font);font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all 0.15s}
+.filter-btn:hover{border-color:var(--accent);color:var(--text)}
+.filter-btn.active{background:var(--accent2);border-color:var(--accent);color:#fff}
+.refresh-btn{font-family:var(--font);font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.15s}
+.refresh-btn:hover{color:var(--text)}
+.refresh-btn svg{width:13px;height:13px}
+.meta-input{display:flex;align-items:center;gap:8px}
+.meta-input label{font-size:11px;color:var(--muted);white-space:nowrap}
+.meta-input input{font-family:var(--mono);font-size:12px;width:80px;padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);text-align:center}
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px}
+.spinner{width:36px;height:36px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--muted)}
+.error-box{background:var(--red-bg);border:1px solid rgba(248,113,113,0.2);border-radius:var(--radius);padding:20px 24px;margin:24px 0;color:var(--red);font-size:13px;line-height:1.8}
+.empty-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:40px 24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8}
+
+/* META PROGRESS */
+.meta-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin-bottom:14px}
+.meta-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.meta-title{font-size:12px;font-weight:500;color:var(--text)}
+.meta-pct{font-size:22px;font-weight:500;color:var(--accent)}
+.meta-sub{font-size:11px;color:var(--muted)}
+.progress-track{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-bottom:8px}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width 0.8s ease}
+.meta-stats{display:flex;gap:24px}
+.meta-stat{font-size:11px;color:var(--muted)}
+.meta-stat strong{color:var(--text);font-weight:500}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;transition:border-color 0.2s}
+.kpi-card:hover{border-color:var(--border2)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.red::before{background:var(--red)}
+.kpi-card.amber::before{background:var(--amber)}
+.kpi-card.purple::before{background:var(--purple)}
+.kpi-card.teal::before{background:var(--teal)}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;font-weight:500}
+.kpi-value{font-size:22px;font-weight:500;line-height:1;margin-bottom:6px}
+.kpi-value.green{color:var(--green)}
+.kpi-value.red{color:var(--red)}
+.kpi-value.amber{color:var(--amber)}
+.kpi-value.purple{color:var(--purple)}
+.kpi-value.teal{color:var(--teal)}
+.kpi-delta{font-size:11px;color:var(--muted)}
+
+/* CHARTS */
+.row2{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.row3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.row4{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:500;color:var(--text)}
+.card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.chart-wrap{position:relative;height:190px}
+.chart-wrap-sm{position:relative;height:150px}
+
+/* BARRAS */
+.utm-section{margin-bottom:12px}
+.utm-label{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:7px;font-weight:500}
+.bar-item{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.bar-name{font-size:11px;color:var(--muted);width:85px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.bar-val{font-size:11px;color:var(--muted);font-family:var(--mono);width:52px;text-align:right;flex-shrink:0}
+
+/* TABELA */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted2);font-weight:500;text-align:left;padding:0 10px 8px 0;border-bottom:1px solid var(--border)}
+tbody td{font-size:12px;color:var(--text);padding:8px 10px 8px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,0.02)}
+.badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px}
+.badge.ap{background:var(--green-bg);color:var(--green)}
+.badge.cn{background:var(--red-bg);color:var(--red)}
+.badge.re{background:var(--amber-bg);color:var(--amber)}
+.badge.ot{background:var(--bg3);color:var(--muted)}
+.td-mono{font-family:var(--mono);font-size:11px}
+
+/* PROD */
+.prod-item{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.prod-rank{font-size:10px;color:var(--muted2);font-family:var(--mono);width:14px;flex-shrink:0}
+.prod-name{font-size:11px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prod-track{width:60px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;flex-shrink:0}
+.prod-fill{height:100%;border-radius:2px}
+.prod-val{font-size:11px;color:var(--muted);font-family:var(--mono);width:58px;text-align:right;flex-shrink:0}
+
+/* PAGAMENTO / CUPOM */
+.pill-list{display:flex;flex-direction:column;gap:6px}
+.pill-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)}
+.pill-name{font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pill-count{font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:10px;flex-shrink:0}
+.pill-val{font-size:11px;color:var(--green);font-family:var(--mono);margin-left:10px;flex-shrink:0}
+
+.footer{margin-top:28px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted2);flex-wrap:wrap;gap:8px}
+.footer-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.no-data{font-size:11px;color:var(--muted);padding:8px 0}
+@media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.row2,.row4{grid-template-columns:minmax(0,1fr)}.row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.shell{padding:14px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.row3{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-dot">S</div>
+      <div>
+        <div class="brand-name">Summit Paraíba 2026</div>
+        <div class="brand-sub">Dashboard de vendas — Goexplosion</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="meta-input">
+        <label>Meta de ingressos:</label>
+        <input type="number" id="meta-input" value="500" min="1">
+      </div>
+      <div class="filter-group" id="period-filters">
+        <button class="filter-btn" data-period="7">7 dias</button>
+        <button class="filter-btn active" data-period="30">30 dias</button>
+        <button class="filter-btn" data-period="90">90 dias</button>
+        <button class="filter-btn" data-period="0">Tudo</button>
+      </div>
+      <button class="refresh-btn" id="refresh-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </div>
+  <div id="main-content">
+    <div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>
+  </div>
+</div>
+<script>
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx18Vr_uIeuNOgFAVj2YSTbcDo__MLw9KU-A5bD16HXby-zY5BQ10myNfE43WbteOni/exec';
+
+var C = {
+  ordemID:0,produtoID:1,tipoEvento:2,dataTransacao:3,produto:4,
+  quantidade:5,email:6,nomeComprador:7,celular:8,
+  endRua:9,endNumero:10,endComplemento:11,endCEP:12,endCidade:13,
+  endEstado:14,endPais:15,endReferencia:16,endBairro:17,
+  dataCompra:18,status:19,descStatus:20,dataAutorizacao:21,
+  serialHashed:22,metodoPagamento:23,qtdParcelas:24,
+  subTotal:25,total:26,
+  utmSource:27,utmContent:28,utmTerm:29,utmVendor:30,
+  utmMedium:31,utmCampaign:32,cupom:33
+};
+
+var allRows = [];
+var activePeriod = 30;
+var charts = {};
+
+function g(row, idx) {
+  var v = row[idx];
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'object' && v instanceof Date) return v.toISOString();
+  return String(v).trim();
+}
+
+function parseDate(str) {
+  if (!str) return null;
+  var s = str.trim();
+  var m;
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return new Date(+m[1],+m[2]-1,+m[3]);
+  if ((m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/))) return new Date(+m[3],+m[2]-1,+m[1]);
+  if ((m = s.match(/^(\d{2})-(\d{2})-(\d{4})/))) return new Date(+m[3],+m[2]-1,+m[1]);
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function parseVal(str) {
+  if (!str) return 0;
+  return parseFloat(String(str).replace(/[^\d.,]/g,'').replace(',','.')) || 0;
+}
+
+function normStatus(s) {
+  var v = String(s).toLowerCase().trim();
+  if (v.indexOf('aprovad')>=0||v.indexOf('pago')>=0||v.indexOf('paga')>=0||v.indexOf('paid')>=0||v.indexOf('approved')>=0||v.indexOf('complet')>=0) return 'aprovado';
+  if (v.indexOf('cancel')>=0||v.indexOf('chargeback')>=0) return 'cancelado';
+  if (v.indexOf('reembol')>=0||v.indexOf('refund')>=0) return 'reembolsado';
+  return 'outro';
+}
+
+function filterPeriod(rows, days) {
+  if (!days) return rows;
+  var cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return rows.filter(function(r) {
+    var d = parseDate(g(r,C.dataTransacao)) || parseDate(g(r,C.dataCompra));
+    return d && d >= cutoff;
+  });
+}
+
+function fmt(n) {
+  return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
+}
+function fmtShort(n) {
+  if (n>=1000) return 'R$ '+(n/1000).toFixed(1).replace('.',',')+'k';
+  return fmt(n);
+}
+function sClass(s) {
+  return s==='aprovado'?'ap':s==='cancelado'?'cn':s==='reembolsado'?'re':'ot';
+}
+function top(obj,n) {
+  return Object.entries(obj).sort(function(a,b){return b[1]-a[1];}).slice(0,n);
+}
+function barList(items, max, color) {
+  if (!items.length) return '<div class="no-data">Sem dados</div>';
+  return items.map(function(it) {
+    var pct = Math.round((it[1]/max)*100);
+    return '<div class="bar-item"><div class="bar-name" title="'+it[0]+'">'+it[0]+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><div class="bar-val">'+fmtShort(it[1])+'</div></div>';
+  }).join('');
+}
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); charts[key]=null; }
+}
+
+function render(rows) {
+  var filtered = filterPeriod(rows, activePeriod);
+  var meta = parseInt(document.getElementById('meta-input').value) || 500;
+
+  if (!filtered.length) {
+    document.getElementById('main-content').innerHTML =
+      '<div class="empty-box"><div style="font-size:32px;margin-bottom:12px">📊</div><div style="font-size:14px;color:var(--text);margin-bottom:6px">Nenhuma venda ainda</div><div>Assim que a Goexplosion registrar as primeiras transações, todos os gráficos e KPIs aparecem aqui automaticamente.</div><div style="margin-top:12px;font-size:11px;color:var(--muted2)">Linhas na planilha: '+rows.length+' · Período: '+(activePeriod?activePeriod+' dias':'tudo')+'</div></div>';
+    return;
+  }
+
+  var receitaAp=0,qtdAp=0,qtdCn=0,qtdRe=0,qtdTotal=0;
+  var porDia={},porProd={},porSource={},porMedium={},porCamp={};
+  var porPagto={},porCupom={},porIngresso={};
+  var transacoes=[];
+  var receitaCn=0;
+
+  filtered.forEach(function(r) {
+    var status = normStatus(g(r,C.status));
+    var total = parseVal(g(r,C.total));
+    var produto = g(r,C.produto)||'N/A';
+    var source = g(r,C.utmSource)||'direto';
+    var medium = g(r,C.utmMedium)||'direto';
+    var camp = g(r,C.utmCampaign)||'sem campanha';
+    var nome = g(r,C.nomeComprador)||'—';
+    var pagto = g(r,C.metodoPagamento)||'não informado';
+    var cupom = g(r,C.cupom)||'sem cupom';
+    var dateStr = g(r,C.dataTransacao)||g(r,C.dataCompra);
+    var d = parseDate(dateStr);
+    var dKey = d ? d.toISOString().split('T')[0] : null;
+
+    qtdTotal++;
+    if (status==='aprovado'){receitaAp+=total;qtdAp++;}
+    if (status==='cancelado'){qtdCn++;receitaCn+=total;}
+    if (status==='reembolsado') qtdRe++;
+
+    if (dKey) {
+      if (!porDia[dKey]) porDia[dKey]={ap:0,cn:0};
+      if (status==='aprovado') porDia[dKey].ap++;
+      if (status==='cancelado') porDia[dKey].cn++;
+    }
+
+    if (status==='aprovado') {
+      porProd[produto]=(porProd[produto]||0)+total;
+      porSource[source]=(porSource[source]||0)+total;
+      porMedium[medium]=(porMedium[medium]||0)+total;
+      porCamp[camp]=(porCamp[camp]||0)+total;
+      if (!porPagto[pagto]) porPagto[pagto]={qtd:0,val:0};
+      porPagto[pagto].qtd++;
+      porPagto[pagto].val+=total;
+      if (cupom && cupom!=='sem cupom') {
+        if (!porCupom[cupom]) porCupom[cupom]={qtd:0,val:0};
+        porCupom[cupom].qtd++;
+        porCupom[cupom].val+=total;
+      }
+      porIngresso[produto]=(porIngresso[produto]||0)+1;
+    }
+
+    transacoes.push({d:d,dateStr:dateStr,nome:nome,produto:produto,total:total,status:status,pagto:pagto});
+  });
+
+  transacoes.sort(function(a,b){return (b.d||0)-(a.d||0);});
+
+  var taxa = qtdTotal>0 ? Math.round((qtdAp/qtdTotal)*100) : 0;
+  var ticket = qtdAp>0 ? receitaAp/qtdAp : 0;
+  var metaPct = Math.min(Math.round((qtdAp/meta)*100),100);
+  var metaFaltam = Math.max(meta-qtdAp,0);
+
+  var dias = Object.keys(porDia).sort().slice(-30);
+  var diasLabels = dias.map(function(d){var p=d.split('-');return p[2]+'/'+p[1];});
+  var apData = dias.map(function(d){return porDia[d]?porDia[d].ap:0;});
+  var cnData = dias.map(function(d){return porDia[d]?porDia[d].cn:0;});
+
+  var topProd=top(porProd,6),topSource=top(porSource,5),topMedium=top(porMedium,4),topCamp=top(porCamp,6);
+  var topPagto=top(Object.fromEntries(Object.entries(porPagto).map(function(e){return [e[0],e[1].val];})),5);
+  var topCupom=top(Object.fromEntries(Object.entries(porCupom).map(function(e){return [e[0],e[1].val];})),6);
+  var topIngresso=top(porIngresso,6);
+
+  var maxProd=topProd.length?topProd[0][1]:1;
+  var maxSource=topSource.length?topSource[0][1]:1;
+  var maxMedium=topMedium.length?topMedium[0][1]:1;
+  var maxCamp=topCamp.length?topCamp[0][1]:1;
+  var maxPagto=topPagto.length?topPagto[0][1]:1;
+  var maxCupom=topCupom.length?topCupom[0][1]:1;
+  var maxIngresso=topIngresso.length?topIngresso[0][1]:1;
+
+  var prodColors=['#4f8ef7','#a78bfa','#34d399','#fbbf24','#f87171','#60a5fa'];
+
+  var txRows = transacoes.slice(0,15).map(function(t){
+    var dt = t.d ? t.d.toLocaleDateString('pt-BR') : (t.dateStr||'—');
+    return '<tr><td class="td-mono">'+dt+'</td><td>'+t.nome+'</td><td style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.produto+'</td><td style="color:var(--muted);font-size:11px">'+t.pagto+'</td><td class="td-mono">'+fmt(t.total)+'</td><td><span class="badge '+sClass(t.status)+'">'+t.status+'</span></td></tr>';
+  }).join('');
+
+  var prodRows = topProd.map(function(it,i){
+    var pct=Math.round((it[1]/maxProd)*100);
+    return '<div class="prod-item"><div class="prod-rank">'+(i+1)+'</div><div class="prod-name" title="'+it[0]+'">'+it[0]+'</div><div class="prod-track"><div class="prod-fill" style="width:'+pct+'%;background:'+prodColors[i]+'"></div></div><div class="prod-val">'+fmtShort(it[1])+'</div></div>';
+  }).join('')||'<div class="no-data">Sem vendas aprovadas</div>';
+
+  var ingressoRows = topIngresso.map(function(it,i){
+    var pct=Math.round((it[1]/maxIngresso)*100);
+    return '<div class="prod-item"><div class="prod-rank">'+(i+1)+'</div><div class="prod-name" title="'+it[0]+'">'+it[0]+'</div><div class="prod-track"><div class="prod-fill" style="width:'+pct+'%;background:'+prodColors[i]+'"></div></div><div class="prod-val">'+it[1]+' und</div></div>';
+  }).join('')||'<div class="no-data">Sem dados</div>';
+
+  var pagtoRows = topPagto.map(function(it){
+    var qtd = porPagto[it[0]]?porPagto[it[0]].qtd:0;
+    return '<div class="pill-item"><div class="pill-name">'+it[0]+'</div><div class="pill-count">'+qtd+'x</div><div class="pill-val">'+fmtShort(it[1])+'</div></div>';
+  }).join('')||'<div class="no-data">Sem dados</div>';
+
+  var cupomRows = Object.keys(porCupom).length ?
+    top(Object.fromEntries(Object.entries(porCupom).map(function(e){return [e[0],e[1].qtd];})),6).map(function(it){
+      var val = porCupom[it[0]]?porCupom[it[0]].val:0;
+      return '<div class="pill-item"><div class="pill-name">'+it[0]+'</div><div class="pill-count">'+it[1]+'x</div><div class="pill-val">'+fmtShort(val)+'</div></div>';
+    }).join('') : '<div class="no-data">Nenhum cupom usado ainda</div>';
+
+  document.getElementById('main-content').innerHTML =
+
+    // BARRA DE META
+    '<div class="meta-card">' +
+      '<div class="meta-header">' +
+        '<div><div class="meta-title">Progresso da meta de ingressos</div><div class="meta-sub">Vendidos vs. meta definida no topo</div></div>' +
+        '<div class="meta-pct">'+metaPct+'%</div>' +
+      '</div>' +
+      '<div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>' +
+      '<div class="meta-stats">' +
+        '<div class="meta-stat"><strong>'+qtdAp+'</strong> vendidos</div>' +
+        '<div class="meta-stat"><strong>'+metaFaltam+'</strong> faltam</div>' +
+        '<div class="meta-stat">Meta: <strong>'+meta+'</strong></div>' +
+        '<div class="meta-stat">Receita: <strong>'+fmt(receitaAp)+'</strong></div>' +
+      '</div>' +
+    '</div>' +
+
+    // KPIs
+    '<div class="kpi-grid">' +
+      '<div class="kpi-card green"><div class="kpi-label">Receita aprovada</div><div class="kpi-value green">'+fmt(receitaAp)+'</div><div class="kpi-delta">'+qtdAp+' venda'+(qtdAp!==1?'s':'')+'</div></div>' +
+      '<div class="kpi-card red"><div class="kpi-label">Cancelamentos</div><div class="kpi-value red">'+qtdCn+'</div><div class="kpi-delta">'+fmt(receitaCn)+' perdidos</div></div>' +
+      '<div class="kpi-card amber"><div class="kpi-label">Taxa de aprovação</div><div class="kpi-value amber">'+taxa+'%</div><div class="kpi-delta">'+qtdTotal+' transaç'+(qtdTotal===1?'ão':'ões')+'</div></div>' +
+      '<div class="kpi-card purple"><div class="kpi-label">Ticket médio</div><div class="kpi-value purple">'+fmt(ticket)+'</div><div class="kpi-delta">por venda aprovada</div></div>' +
+      '<div class="kpi-card teal"><div class="kpi-label">Reembolsos</div><div class="kpi-value teal">'+qtdRe+'</div><div class="kpi-delta">'+(qtdTotal>0?Math.round((qtdRe/qtdTotal)*100):0)+'% do total</div></div>' +
+    '</div>' +
+
+    // LINHA: gráfico + UTM
+    '<div class="row2">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Vendas por dia</div><div class="card-sub">aprovadas vs cancelamentos</div></div></div><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Desempenho UTM</div><div class="card-sub">receita por origem</div></div></div>' +
+        '<div class="utm-section"><div class="utm-label">Source</div>'+barList(topSource,maxSource,'var(--accent)')+'</div>' +
+        '<div class="utm-section"><div class="utm-label">Medium</div>'+barList(topMedium,maxMedium,'var(--purple)')+'</div>' +
+      '</div>' +
+    '</div>' +
+
+    // LINHA: produtos + ingressos + campanhas
+    '<div class="row3">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Receita por produto</div><div class="card-sub">valor aprovado</div></div></div>'+prodRows+'</div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Ingressos vendidos</div><div class="card-sub">quantidade por tipo</div></div></div>'+ingressoRows+'</div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Top campaigns</div><div class="card-sub">UTM Campaign</div></div></div>'+barList(topCamp,maxCamp,'#34d399')+'</div>' +
+    '</div>' +
+
+    // LINHA: tabela + pagamento + cupom
+    '<div class="row4">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Últimas transações</div><div class="card-sub">mais recentes primeiro</div></div></div><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Comprador</th><th>Produto</th><th>Pagamento</th><th>Valor</th><th>Status</th></tr></thead><tbody>'+txRows+'</tbody></table></div></div>' +
+      '<div style="display:flex;flex-direction:column;gap:12px">' +
+        '<div class="card"><div class="card-header"><div><div class="card-title">Método de pagamento</div><div class="card-sub">receita e qtd aprovadas</div></div></div><div class="pill-list">'+pagtoRows+'</div></div>' +
+        '<div class="card"><div class="card-header"><div><div class="card-title">Cupons utilizados</div><div class="card-sub">qtd de uso e receita gerada</div></div></div><div class="pill-list">'+cupomRows+'</div></div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="footer"><span><span class="footer-dot"></span>Dados ao vivo — Goexplosion</span><span>Atualizado: '+new Date().toLocaleString('pt-BR')+'</span></div>';
+
+  // Animar barra de progresso
+  setTimeout(function(){
+    var el = document.getElementById('prog-fill');
+    if (el) el.style.width = metaPct+'%';
+  }, 100);
+
+  // Gráfico de linha
+  destroyChart('line');
+  var ctx = document.getElementById('lineChart');
+  if (ctx && dias.length) {
+    charts.line = new Chart(ctx, {
+      type:'line',
+      data:{
+        labels:diasLabels,
+        datasets:[
+          {label:'Aprovadas',data:apData,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.1)',borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:0.4,fill:true},
+          {label:'Cancelamentos',data:cnData,borderColor:'#f87171',backgroundColor:'rgba(248,113,113,0.08)',borderWidth:1.5,pointRadius:3,pointHoverRadius:5,tension:0.4,fill:true}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom',labels:{color:'#7a7d85',font:{size:11,family:'DM Sans'},boxWidth:10,padding:12}},
+          tooltip:{backgroundColor:'#1e2026',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#f0efe8',bodyColor:'#7a7d85',padding:10}
+        },
+        scales:{
+          x:{ticks:{color:'#555860',font:{size:10},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+          y:{ticks:{color:'#555860',font:{size:10},stepSize:1},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false},beginAtZero:true}
+        }
+      }
+    });
+  }
+}
+
+function loadData() {
+  document.getElementById('main-content').innerHTML = '<div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>';
+  var controller = new AbortController();
+  var timeout = setTimeout(function(){controller.abort();}, 15000);
+  fetch(SCRIPT_URL, {signal: controller.signal})
+    .then(function(res){
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      return res.json();
+    })
+    .then(function(data){
+      // Suporte a array direto ou objeto {data:[...]}
+      var matrix = Array.isArray(data) ? data : (data.data || []);
+      if (!matrix.length) throw new Error('Resposta vazia do Apps Script.');
+      // Detectar se tem linha de grupos ou começa direto nos cabeçalhos
+      var primeiraLinha = String(matrix[0][0]||'').toLowerCase();
+      var startIdx = (primeiraLinha.indexOf('pedido')>=0 || primeiraLinha.indexOf('ordeid')>=0 || primeiraLinha==='') ? 2 : 1;
+      allRows = matrix.slice(startIdx).filter(function(r){
+        return r.some(function(c){return c!==''&&c!==null&&c!==undefined;});
+      });
+      render(allRows);
+    })
+    .catch(function(e){
+      document.getElementById('main-content').innerHTML =
+        '<div class="error-box"><strong>Não foi possível carregar os dados.</strong><br><br>Erro: '+e.message+'<br><br>Verifique se o Apps Script está implantado com acesso <strong>"Qualquer pessoa"</strong> e tente novamente.</div>';
+    });
+}
+
+document.querySelectorAll('[data-period]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('[data-period]').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    activePeriod = parseInt(btn.getAttribute('data-period'));
+    if (allRows.length) render(allRows);
+  });
+});
+
+document.getElementById('refresh-btn').addEventListener('click', loadData);
+document.getElementById('meta-input').addEventListener('change', function(){
+  if (allRows.length) render(allRows);
+});
+
+loadData();
+</script>
+</body>
+</html>
