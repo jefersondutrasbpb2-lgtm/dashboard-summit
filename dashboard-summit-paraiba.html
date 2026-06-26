@@ -193,6 +193,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025)}
 </div>
 <script>
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3P6ys5bpL8DcWRSplSkeUZA8e-6UewA05L8qVVx2m9SevtZBpVhrTun3oYLBINkg/exec';
+// URL do proxy do Meta Ads (Apps Script separado, ver meta-ads-proxy.gs). Deixe vazio para ocultar a comparação de ROAS.
+var SCRIPT_URL_META = '';
 
 var C = {
   ordemID:0,produtoID:1,tipoEvento:2,dataTransacao:3,produto:4,
@@ -209,6 +211,7 @@ var C = {
 };
 
 var allRows = [];
+var metaAdsData = null;
 var activePeriod = 30;
 var charts = {};
 
@@ -272,6 +275,19 @@ function barList(items, max, color, wide) {
     var pct = Math.round((it[1]/max)*100);
     return '<div class="bar-item"><div class="bar-name'+(wide?' wide':'')+'" title="'+it[0]+'">'+it[0]+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><div class="bar-val">'+fmtShort(it[1])+'</div></div>';
   }).join('');
+}
+function normWords(s) {
+  return String(s||'').toLowerCase().replace(/[^a-z0-9çãõáéíóúâêô]+/g,' ').split(' ').filter(function(w){return w.length>2;});
+}
+function matchCampaign(metaName, utmKeys) {
+  var metaWords = normWords(metaName);
+  var best=null, bestScore=0;
+  utmKeys.forEach(function(k){
+    var kWords = normWords(k);
+    var score = metaWords.filter(function(w){return kWords.indexOf(w)>=0;}).length;
+    if (score>bestScore) { bestScore=score; best=k; }
+  });
+  return bestScore>0 ? best : null;
 }
 function destroyChart(key) {
   if (charts[key]) { charts[key].destroy(); charts[key]=null; }
@@ -394,6 +410,36 @@ function render(rows) {
       return '<div class="pill-item"><div class="pill-name">'+it[0]+'</div><div class="pill-count">'+it[1]+'x</div><div class="pill-val">'+fmtShort(val)+'</div></div>';
     }).join('') : '<div class="no-data">Nenhum cupom usado ainda</div>';
 
+  var roasSection = '';
+  if (metaAdsData && metaAdsData.items) {
+    var utmKeys = Object.keys(porCamp);
+    var realRoasTotal = metaAdsData.totalSpend>0 ? (receitaAp/metaAdsData.totalSpend) : 0;
+    var diffPct = metaAdsData.totalRevenue>0 ? Math.round(((receitaAp-metaAdsData.totalRevenue)/metaAdsData.totalRevenue)*100) : null;
+    var roasRows = metaAdsData.items.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
+      var matched = matchCampaign(it.campaign, utmKeys);
+      var realRev = matched ? porCamp[matched] : 0;
+      var realRoasC = it.spend>0 ? (realRev/it.spend) : 0;
+      return '<tr><td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.campaign+'">'+it.campaign+'</td>'+
+        '<td class="td-mono">'+fmt(it.spend)+'</td>'+
+        '<td class="td-mono">'+fmt(it.revenue)+'</td>'+
+        '<td class="td-mono">'+it.roas.toFixed(2)+'x</td>'+
+        '<td class="td-mono">'+(matched?fmt(realRev):'—')+'</td>'+
+        '<td class="td-mono" style="color:'+(matched?(realRoasC>=it.roas?'var(--green)':'var(--red)'):'var(--muted)')+'">'+(matched?realRoasC.toFixed(2)+'x':'sem match')+'</td></tr>';
+    }).join('');
+    roasSection =
+      '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div><div class="card-sub">comparação entre o que o Meta reporta e o que realmente caiu na planilha</div></div></div>' +
+        '<div class="kpi-grid" style="margin-bottom:16px">' +
+          '<div class="kpi-card amber"><div class="kpi-label">Gasto no Meta Ads</div><div class="kpi-value amber">'+fmt(metaAdsData.totalSpend)+'</div><div class="kpi-delta">período selecionado</div></div>' +
+          '<div class="kpi-card purple"><div class="kpi-label">Receita reportada (Meta)</div><div class="kpi-value purple">'+fmt(metaAdsData.totalRevenue)+'</div><div class="kpi-delta">ROAS Meta: '+metaAdsData.totalRoas.toFixed(2)+'x</div></div>' +
+          '<div class="kpi-card green"><div class="kpi-label">Receita real (checkout)</div><div class="kpi-value green">'+fmt(receitaAp)+'</div><div class="kpi-delta">ROAS real: '+realRoasTotal.toFixed(2)+'x</div></div>' +
+          '<div class="kpi-card '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'"><div class="kpi-label">Diferença de tracking</div><div class="kpi-value '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'">'+(diffPct===null?'—':(diffPct>0?'+':'')+diffPct+'%')+'</div><div class="kpi-delta">real vs. reportado pelo Meta</div></div>' +
+        '</div>' +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita Meta</th><th>ROAS Meta</th><th>Receita real</th><th>ROAS real</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="6" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
+      '</div>';
+  } else if (SCRIPT_URL_META) {
+    roasSection = '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div></div></div><div class="no-data">Não foi possível carregar os dados do Meta Ads.</div></div>';
+  }
+
   document.getElementById('main-content').innerHTML =
 
     (semVendas ? '<div class="empty-box" style="margin-bottom:14px"><div style="font-size:14px;color:var(--text);margin-bottom:4px">📊 Nenhuma venda registrada ainda neste período</div><div>O dashboard abaixo já está pronto e vai preencher automaticamente assim que a Goexplosion registrar as primeiras transações. Linhas na planilha: '+rows.length+'.</div></div>' : '') +
@@ -421,6 +467,8 @@ function render(rows) {
       '<div class="kpi-card purple"><div class="kpi-label">Ticket médio</div><div class="kpi-value purple">'+fmt(ticket)+'</div><div class="kpi-delta">por venda aprovada</div></div>' +
       '<div class="kpi-card teal"><div class="kpi-label">Reembolsos</div><div class="kpi-value teal">'+qtdRe+'</div><div class="kpi-delta">'+(qtdTotal>0?Math.round((qtdRe/qtdTotal)*100):0)+'% do total</div></div>' +
     '</div>' +
+
+    roasSection +
 
     // LINHA: gráfico + UTM
     '<div class="row2">' +
@@ -515,6 +563,19 @@ function loadData() {
       document.getElementById('main-content').innerHTML =
         '<div class="error-box"><strong>Não foi possível carregar os dados.</strong><br><br>Erro: '+e.message+'<br><br>Verifique se o Apps Script está implantado com acesso <strong>"Qualquer pessoa"</strong> e tente novamente.</div>';
     });
+  loadMetaAdsData();
+}
+
+function loadMetaAdsData() {
+  if (!SCRIPT_URL_META) { metaAdsData = null; if (allRows.length) render(allRows); return; }
+  var days = activePeriod || '0';
+  fetch(SCRIPT_URL_META + '?days=' + days, {redirect: 'follow', mode: 'cors'})
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      metaAdsData = (data && !data.error) ? data : null;
+      if (allRows.length) render(allRows);
+    })
+    .catch(function(){ metaAdsData = null; });
 }
 
 document.querySelectorAll('[data-period]').forEach(function(btn){
@@ -522,6 +583,7 @@ document.querySelectorAll('[data-period]').forEach(function(btn){
     document.querySelectorAll('[data-period]').forEach(function(b){b.classList.remove('active');});
     btn.classList.add('active');
     activePeriod = parseInt(btn.getAttribute('data-period'));
+    loadMetaAdsData();
     if (allRows.length) render(allRows);
   });
 });
