@@ -36,16 +36,20 @@ function doGet(e) {
     return jsonOut({error: 'Configure META_ACCESS_TOKEN e META_AD_ACCOUNT_ID nas Propriedades do script.'});
   }
 
-  var days = (e.parameter.days || '30');
   var timeParam;
-  if (days === '0' || days === 'all') {
-    timeParam = 'date_preset=maximum';
+  if (e.parameter.since && e.parameter.until) {
+    timeParam = 'time_range=' + encodeURIComponent(JSON.stringify({since: e.parameter.since, until: e.parameter.until}));
   } else {
-    var until = new Date();
-    var since = new Date();
-    since.setDate(since.getDate() - parseInt(days, 10));
-    var fmt = function(d) { return d.toISOString().split('T')[0]; };
-    timeParam = 'time_range=' + encodeURIComponent(JSON.stringify({since: fmt(since), until: fmt(until)}));
+    var days = (e.parameter.days || '30');
+    if (days === '0' || days === 'all') {
+      timeParam = 'date_preset=maximum';
+    } else {
+      var until = new Date();
+      var since = new Date();
+      since.setDate(since.getDate() - parseInt(days, 10));
+      var fmt = function(d) { return d.toISOString().split('T')[0]; };
+      timeParam = 'time_range=' + encodeURIComponent(JSON.stringify({since: fmt(since), until: fmt(until)}));
+    }
   }
 
   var url = 'https://graph.facebook.com/v21.0/' + actId + '/insights' +

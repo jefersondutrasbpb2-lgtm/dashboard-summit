@@ -52,6 +52,38 @@ body{
 .meta-input label{font-size:11px;color:var(--muted);white-space:nowrap;font-weight:500}
 .meta-input input{font-family:var(--mono);font-size:12px;width:70px;padding:6px 10px;border-radius:16px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);text-align:center;font-weight:500}
 .meta-input input:focus{outline:none;border-color:var(--accent)}
+.filter-row2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.date-range{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:6px 8px 6px 14px}
+.date-range label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap}
+.date-range input[type=date]{font-family:var(--mono);font-size:11.5px;padding:6px 8px;border-radius:14px;border:1px solid var(--border2);background:var(--bg3);color:var(--text)}
+.date-range input[type=date]:focus{outline:none;border-color:var(--accent)}
+.date-apply-btn,.date-clear-btn{font-family:var(--font);font-size:11.5px;font-weight:500;padding:7px 13px;border-radius:16px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;transition:all 0.2s}
+.date-apply-btn:hover{border-color:var(--accent);color:var(--accent)}
+.date-clear-btn{color:var(--muted)}
+.date-clear-btn:hover{color:var(--red);border-color:var(--red)}
+.camp-filter{position:relative}
+.camp-filter-btn{font-family:var(--font);font-size:12px;font-weight:500;padding:9px 16px;border-radius:24px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:7px;transition:all 0.2s}
+.camp-filter-btn:hover{border-color:var(--accent)}
+.camp-filter-btn.active-filter{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.camp-filter-badge{background:var(--accent);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;min-width:16px;text-align:center}
+.camp-filter-panel{position:absolute;top:calc(100% + 8px);left:0;width:340px;max-height:420px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:14px;box-shadow:var(--shadow-hover);z-index:100;display:none}
+.camp-filter-panel.open{display:block}
+.camp-filter-search{width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:12px;font-family:var(--font);margin-bottom:10px}
+.camp-filter-search:focus{outline:none;border-color:var(--accent)}
+.camp-filter-quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.camp-filter-quick button{font-size:10.5px;padding:5px 10px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer}
+.camp-filter-quick button:hover{color:var(--text);border-color:var(--accent)}
+.camp-filter-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px 0;margin-bottom:10px}
+.camp-filter-item{display:flex;align-items:center;gap:9px;padding:6px 4px;font-size:12px;color:var(--text);border-radius:6px;cursor:pointer}
+.camp-filter-item:hover{background:var(--bg3)}
+.camp-filter-item input{accent-color:var(--accent);cursor:pointer}
+.camp-filter-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.camp-filter-item .cnt{color:var(--muted2);font-size:10.5px;font-family:var(--mono)}
+.camp-filter-actions{display:flex;gap:8px}
+.camp-filter-actions button{flex:1;font-size:12px;font-weight:500;padding:8px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer}
+.camp-filter-actions .apply-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff}
+.camp-filter-actions .clear-btn{color:var(--muted)}
+.camp-filter-empty{font-size:12px;color:var(--muted);text-align:center;padding:14px 0}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:18px}
 .spinner{width:34px;height:34px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -187,6 +219,37 @@ tbody tr:hover td{background:rgba(255,255,255,0.025)}
       </button>
     </div>
   </div>
+  <div class="filter-row2">
+    <div class="date-range">
+      <label>De:</label>
+      <input type="date" id="date-from">
+      <label>Até:</label>
+      <input type="date" id="date-to">
+      <button class="date-apply-btn" id="date-apply-btn">Aplicar período</button>
+      <button class="date-clear-btn" id="date-clear-btn" title="Voltar para os filtros rápidos">✕</button>
+    </div>
+    <div class="camp-filter">
+      <button class="camp-filter-btn" id="camp-filter-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        <span id="camp-filter-label">Todas as campanhas</span>
+      </button>
+      <div class="camp-filter-panel" id="camp-filter-panel">
+        <input type="text" class="camp-filter-search" id="camp-filter-search" placeholder="Buscar por nome ou palavra-chave (ex: lead, venda, rmkt)">
+        <div class="camp-filter-quick">
+          <button data-q="venda">Vendas</button>
+          <button data-q="lead">Leads</button>
+          <button data-q="rmkt,remarketing">Remarketing</button>
+          <button data-q="lote">Lote</button>
+          <button data-q="">Limpar busca</button>
+        </div>
+        <div class="camp-filter-list" id="camp-filter-list"></div>
+        <div class="camp-filter-actions">
+          <button class="clear-btn" id="camp-filter-clear">Selecionar todas</button>
+          <button class="apply-btn" id="camp-filter-apply">Aplicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="main-content">
     <div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>
   </div>
@@ -212,6 +275,9 @@ var C = {
 
 var allRows = [];
 var metaAdsData = null;
+var customRange = null;
+var campaignFilterSelected = null;
+var campaignDraft = null;
 var activePeriod = 30;
 var charts = {};
 
@@ -256,6 +322,24 @@ function filterPeriod(rows, days) {
   });
 }
 
+function filterByDate(rows) {
+  if (customRange) {
+    return rows.filter(function(r) {
+      var d = parseDate(g(r,C.dataTransacao)) || parseDate(g(r,C.dataCompra));
+      return d && d >= customRange.from && d <= customRange.to;
+    });
+  }
+  return filterPeriod(rows, activePeriod);
+}
+
+function filterByCampaign(rows) {
+  if (!campaignFilterSelected) return rows;
+  return rows.filter(function(r) {
+    var camp = g(r,C.utmCampaign)||'sem campanha';
+    return campaignFilterSelected.has(camp);
+  });
+}
+
 function fmt(n) {
   return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
 }
@@ -294,7 +378,7 @@ function destroyChart(key) {
 }
 
 function render(rows) {
-  var filtered = filterPeriod(rows, activePeriod);
+  var filtered = filterByCampaign(filterByDate(rows));
   var meta = parseInt(document.getElementById('meta-input').value) || 500;
 
   var semVendas = !filtered.length;
@@ -568,8 +652,14 @@ function loadData() {
 
 function loadMetaAdsData() {
   if (!SCRIPT_URL_META) { metaAdsData = null; if (allRows.length) render(allRows); return; }
-  var days = activePeriod || '0';
-  fetch(SCRIPT_URL_META + '?days=' + days, {redirect: 'follow', mode: 'cors'})
+  var qs;
+  if (customRange) {
+    var fmt = function(d){return d.toISOString().split('T')[0];};
+    qs = 'since=' + fmt(customRange.from) + '&until=' + fmt(customRange.to);
+  } else {
+    qs = 'days=' + (activePeriod || '0');
+  }
+  fetch(SCRIPT_URL_META + '?' + qs, {redirect: 'follow', mode: 'cors'})
     .then(function(res){ return res.json(); })
     .then(function(data){
       metaAdsData = (data && !data.error) ? data : null;
@@ -583,6 +673,9 @@ document.querySelectorAll('[data-period]').forEach(function(btn){
     document.querySelectorAll('[data-period]').forEach(function(b){b.classList.remove('active');});
     btn.classList.add('active');
     activePeriod = parseInt(btn.getAttribute('data-period'));
+    customRange = null;
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value = '';
     loadMetaAdsData();
     if (allRows.length) render(allRows);
   });
@@ -590,6 +683,129 @@ document.querySelectorAll('[data-period]').forEach(function(btn){
 
 document.getElementById('refresh-btn').addEventListener('click', loadData);
 document.getElementById('meta-input').addEventListener('change', function(){
+  if (allRows.length) render(allRows);
+});
+
+// ---- Filtro de período personalizado ----
+document.getElementById('date-apply-btn').addEventListener('click', function(){
+  var fromVal = document.getElementById('date-from').value;
+  var toVal = document.getElementById('date-to').value;
+  if (!fromVal || !toVal) { alert('Escolha as duas datas (de/até).'); return; }
+  var from = new Date(fromVal+'T00:00:00');
+  var to = new Date(toVal+'T23:59:59');
+  if (from > to) { alert('A data inicial não pode ser depois da data final.'); return; }
+  customRange = {from:from, to:to};
+  document.querySelectorAll('[data-period]').forEach(function(b){b.classList.remove('active');});
+  loadMetaAdsData();
+  if (allRows.length) render(allRows);
+});
+document.getElementById('date-clear-btn').addEventListener('click', function(){
+  customRange = null;
+  document.getElementById('date-from').value = '';
+  document.getElementById('date-to').value = '';
+  document.querySelectorAll('[data-period]').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('[data-period="30"]').classList.add('active');
+  activePeriod = 30;
+  loadMetaAdsData();
+  if (allRows.length) render(allRows);
+});
+
+// ---- Filtro de campanhas ----
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function getCampaignCounts() {
+  var counts = {};
+  allRows.forEach(function(r){
+    var camp = g(r,C.utmCampaign)||'sem campanha';
+    counts[camp]=(counts[camp]||0)+1;
+  });
+  return counts;
+}
+function renderCampaignList(searchText) {
+  var counts = getCampaignCounts();
+  var names = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];});
+  var terms = (searchText||'').toLowerCase().split(',').map(function(t){return t.trim();}).filter(Boolean);
+  var visible = terms.length ? names.filter(function(n){
+    var nl = n.toLowerCase();
+    return terms.some(function(t){return nl.indexOf(t)>=0;});
+  }) : names;
+  var listEl = document.getElementById('camp-filter-list');
+  if (!visible.length) { listEl.innerHTML = '<div class="camp-filter-empty">Nenhuma campanha encontrada</div>'; return; }
+  listEl.innerHTML = visible.map(function(n){
+    var checked = !campaignDraft || campaignDraft.has(n);
+    return '<label class="camp-filter-item"><input type="checkbox" data-camp="'+escHtml(n)+'" '+(checked?'checked':'')+'><span title="'+escHtml(n)+'">'+escHtml(n)+'</span><span class="cnt">'+counts[n]+'</span></label>';
+  }).join('');
+  listEl.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      if (!campaignDraft) campaignDraft = new Set(names);
+      var camp = this.getAttribute('data-camp');
+      if (this.checked) campaignDraft.add(camp); else campaignDraft.delete(camp);
+    });
+  });
+}
+function updateCampFilterLabel() {
+  var label = document.getElementById('camp-filter-label');
+  var btn = document.getElementById('camp-filter-btn');
+  if (!campaignFilterSelected) {
+    label.textContent = 'Todas as campanhas';
+    btn.classList.remove('active-filter');
+  } else {
+    label.textContent = campaignFilterSelected.size+' campanha'+(campaignFilterSelected.size!==1?'s':'')+' selecionada'+(campaignFilterSelected.size!==1?'s':'');
+    btn.classList.add('active-filter');
+  }
+}
+document.getElementById('camp-filter-btn').addEventListener('click', function(e){
+  e.stopPropagation();
+  var panel = document.getElementById('camp-filter-panel');
+  var opening = !panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if (opening) {
+    campaignDraft = campaignFilterSelected ? new Set(campaignFilterSelected) : null;
+    document.getElementById('camp-filter-search').value = '';
+    renderCampaignList('');
+  }
+});
+document.addEventListener('click', function(e){
+  var panel = document.getElementById('camp-filter-panel');
+  if (panel.classList.contains('open') && !panel.contains(e.target) && e.target.id!=='camp-filter-btn') {
+    panel.classList.remove('open');
+  }
+});
+document.getElementById('camp-filter-search').addEventListener('input', function(){
+  renderCampaignList(this.value);
+});
+document.querySelectorAll('.camp-filter-quick button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var q = this.getAttribute('data-q');
+    document.getElementById('camp-filter-search').value = q;
+    var counts = getCampaignCounts();
+    if (q) {
+      var terms = q.split(',').map(function(t){return t.trim().toLowerCase();});
+      campaignDraft = new Set(Object.keys(counts).filter(function(n){
+        var nl = n.toLowerCase();
+        return terms.some(function(t){return nl.indexOf(t)>=0;});
+      }));
+    } else {
+      campaignDraft = new Set(Object.keys(counts));
+    }
+    renderCampaignList(q);
+  });
+});
+document.getElementById('camp-filter-clear').addEventListener('click', function(){
+  campaignDraft = null;
+  document.getElementById('camp-filter-search').value = '';
+  renderCampaignList('');
+});
+document.getElementById('camp-filter-apply').addEventListener('click', function(){
+  var allNames = Object.keys(getCampaignCounts());
+  if (!campaignDraft || campaignDraft.size===allNames.length) {
+    campaignFilterSelected = null;
+  } else {
+    campaignFilterSelected = campaignDraft;
+  }
+  updateCampFilterLabel();
+  document.getElementById('camp-filter-panel').classList.remove('open');
   if (allRows.length) render(allRows);
 });
 
