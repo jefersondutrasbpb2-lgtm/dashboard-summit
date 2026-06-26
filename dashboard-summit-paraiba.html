@@ -154,7 +154,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
   </div>
 </div>
 <script>
-var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx18Vr_uIeuNOgFAVj2YSTbcDo__MLw9KU-A5bD16HXby-zY5BQ10myNfE43WbteOni/exec';
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxT3UvPV4hgB0KGYlPoDoBNqr0GC_W0nozXEPzlHTvyY2SDs9B4RrFPQsEIcaiWOmFx/exec';
 
 var C = {
   ordemID:0,produtoID:1,tipoEvento:2,dataTransacao:3,produto:4,
@@ -441,7 +441,7 @@ function loadData() {
   document.getElementById('main-content').innerHTML = '<div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>';
   var controller = new AbortController();
   var timeout = setTimeout(function(){controller.abort();}, 15000);
-  fetch(SCRIPT_URL, {signal: controller.signal})
+  fetch(SCRIPT_URL, {signal: controller.signal, redirect: 'follow', mode: 'cors'})
     .then(function(res){
       clearTimeout(timeout);
       if (!res.ok) throw new Error('HTTP '+res.status);
