@@ -200,9 +200,11 @@ var C = {
   endEstado:14,endPais:15,endReferencia:16,endBairro:17,
   dataCompra:18,status:19,descStatus:20,dataAutorizacao:21,
   serialHashed:22,metodoPagamento:23,qtdParcelas:24,
-  subTotal:25,total:26,
+  subTotalCompra:25,totalCompra:26,
   utmSource:27,utmContent:28,utmTerm:29,utmVendor:30,
-  utmMedium:31,utmCampaign:32,cupom:33
+  utmMedium:31,utmCampaign:32,cupom:33,
+  checkoutNome:34,checkoutLink:35,followupLink:36,retryLink:37,
+  valorVenda:38,quantidadeProduto:39,subTotal:40,total:41
 };
 
 var allRows = [];
@@ -280,15 +282,16 @@ function render(rows) {
 
   var semVendas = !filtered.length;
 
-  var receitaAp=0,qtdAp=0,qtdCn=0,qtdRe=0,qtdTotal=0;
+  var receitaAp=0,qtdAp=0,qtdCn=0,qtdRe=0,qtdTotal=0,ingressosAp=0;
   var porDia={},porProd={},porSource={},porMedium={},porCamp={};
   var porPagto={},porCupom={},porIngresso={};
   var transacoes=[];
   var receitaCn=0;
 
   filtered.forEach(function(r) {
-    var status = normStatus(g(r,C.status));
+    var status = normStatus(g(r,C.status)+' '+g(r,C.descStatus));
     var total = parseVal(g(r,C.total));
+    var qtdProduto = parseInt(g(r,C.quantidade)) || 1;
     var produto = g(r,C.produto)||'N/A';
     var source = g(r,C.utmSource)||'direto';
     var medium = g(r,C.utmMedium)||'direto';
@@ -301,7 +304,7 @@ function render(rows) {
     var dKey = d ? d.toISOString().split('T')[0] : null;
 
     qtdTotal++;
-    if (status==='aprovado'){receitaAp+=total;qtdAp++;}
+    if (status==='aprovado'){receitaAp+=total;qtdAp++;ingressosAp+=qtdProduto;}
     if (status==='cancelado'){qtdCn++;receitaCn+=total;}
     if (status==='reembolsado') qtdRe++;
 
@@ -324,7 +327,7 @@ function render(rows) {
         porCupom[cupom].qtd++;
         porCupom[cupom].val+=total;
       }
-      porIngresso[produto]=(porIngresso[produto]||0)+1;
+      porIngresso[produto]=(porIngresso[produto]||0)+qtdProduto;
     }
 
     transacoes.push({d:d,dateStr:dateStr,nome:nome,produto:produto,total:total,status:status,pagto:pagto});
@@ -334,8 +337,8 @@ function render(rows) {
 
   var taxa = qtdTotal>0 ? Math.round((qtdAp/qtdTotal)*100) : 0;
   var ticket = qtdAp>0 ? receitaAp/qtdAp : 0;
-  var metaPct = Math.min(Math.round((qtdAp/meta)*100),100);
-  var metaFaltam = Math.max(meta-qtdAp,0);
+  var metaPct = Math.min(Math.round((ingressosAp/meta)*100),100);
+  var metaFaltam = Math.max(meta-ingressosAp,0);
 
   var dias = Object.keys(porDia).sort().slice(-30);
   var diasLabels = dias.map(function(d){var p=d.split('-');return p[2]+'/'+p[1];});
@@ -395,7 +398,7 @@ function render(rows) {
       '</div>' +
       '<div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>' +
       '<div class="meta-stats">' +
-        '<div class="meta-stat"><strong>'+qtdAp+'</strong> vendidos</div>' +
+        '<div class="meta-stat"><strong>'+ingressosAp+'</strong> vendidos</div>' +
         '<div class="meta-stat"><strong>'+metaFaltam+'</strong> faltam</div>' +
         '<div class="meta-stat">Meta: <strong>'+meta+'</strong></div>' +
         '<div class="meta-stat">Receita: <strong>'+fmt(receitaAp)+'</strong></div>' +
