@@ -249,6 +249,27 @@ tbody tr:hover td{background:rgba(255,255,255,0.025)}
         </div>
       </div>
     </div>
+    <div class="camp-filter" id="meta-camp-filter-wrap" style="display:none">
+      <button class="camp-filter-btn" id="meta-camp-filter-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        <span id="meta-camp-filter-label">Meta Ads: todas as campanhas</span>
+      </button>
+      <div class="camp-filter-panel" id="meta-camp-filter-panel">
+        <input type="text" class="camp-filter-search" id="meta-camp-filter-search" placeholder="Buscar por nome ou palavra-chave (ex: lead, venda, rmkt)">
+        <div class="camp-filter-quick">
+          <button data-q="venda">Vendas</button>
+          <button data-q="lead">Leads</button>
+          <button data-q="rmkt,remarketing">Remarketing</button>
+          <button data-q="lote">Lote</button>
+          <button data-q="">Limpar busca</button>
+        </div>
+        <div class="camp-filter-list" id="meta-camp-filter-list"></div>
+        <div class="camp-filter-actions">
+          <button class="clear-btn" id="meta-camp-filter-clear">Selecionar todas</button>
+          <button class="apply-btn" id="meta-camp-filter-apply">Aplicar</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="main-content">
     <div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>
@@ -278,6 +299,8 @@ var metaAdsData = null;
 var customRange = null;
 var campaignFilterSelected = null;
 var campaignDraft = null;
+var metaCampaignFilterSelected = null;
+var metaCampaignDraft = null;
 var activePeriod = 30;
 var charts = {};
 
@@ -496,10 +519,14 @@ function render(rows) {
 
   var roasSection = '';
   if (metaAdsData && metaAdsData.items) {
+    var metaItems = metaCampaignFilterSelected ? metaAdsData.items.filter(function(it){return metaCampaignFilterSelected.has(it.campaign);}) : metaAdsData.items;
+    var metaSpendTot = metaItems.reduce(function(s,i){return s+i.spend;},0);
+    var metaRevTot = metaItems.reduce(function(s,i){return s+i.revenue;},0);
+    var metaRoasTot = metaSpendTot>0 ? (metaRevTot/metaSpendTot) : 0;
     var utmKeys = Object.keys(porCamp);
-    var realRoasTotal = metaAdsData.totalSpend>0 ? (receitaAp/metaAdsData.totalSpend) : 0;
-    var diffPct = metaAdsData.totalRevenue>0 ? Math.round(((receitaAp-metaAdsData.totalRevenue)/metaAdsData.totalRevenue)*100) : null;
-    var roasRows = metaAdsData.items.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
+    var realRoasTotal = metaSpendTot>0 ? (receitaAp/metaSpendTot) : 0;
+    var diffPct = metaRevTot>0 ? Math.round(((receitaAp-metaRevTot)/metaRevTot)*100) : null;
+    var roasRows = metaItems.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
       var matched = matchCampaign(it.campaign, utmKeys);
       var realRev = matched ? porCamp[matched] : 0;
       var realRoasC = it.spend>0 ? (realRev/it.spend) : 0;
@@ -511,10 +538,10 @@ function render(rows) {
         '<td class="td-mono" style="color:'+(matched?(realRoasC>=it.roas?'var(--green)':'var(--red)'):'var(--muted)')+'">'+(matched?realRoasC.toFixed(2)+'x':'sem match')+'</td></tr>';
     }).join('');
     roasSection =
-      '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div><div class="card-sub">comparação entre o que o Meta reporta e o que realmente caiu na planilha</div></div></div>' +
+      '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div><div class="card-sub">comparação entre o que o Meta reporta e o que realmente caiu na planilha'+(metaCampaignFilterSelected?' · filtrado por '+metaCampaignFilterSelected.size+' campanha(s)':'')+'</div></div></div>' +
         '<div class="kpi-grid" style="margin-bottom:16px">' +
-          '<div class="kpi-card amber"><div class="kpi-label">Gasto no Meta Ads</div><div class="kpi-value amber">'+fmt(metaAdsData.totalSpend)+'</div><div class="kpi-delta">período selecionado</div></div>' +
-          '<div class="kpi-card purple"><div class="kpi-label">Receita reportada (Meta)</div><div class="kpi-value purple">'+fmt(metaAdsData.totalRevenue)+'</div><div class="kpi-delta">ROAS Meta: '+metaAdsData.totalRoas.toFixed(2)+'x</div></div>' +
+          '<div class="kpi-card amber"><div class="kpi-label">Gasto no Meta Ads</div><div class="kpi-value amber">'+fmt(metaSpendTot)+'</div><div class="kpi-delta">período selecionado</div></div>' +
+          '<div class="kpi-card purple"><div class="kpi-label">Receita reportada (Meta)</div><div class="kpi-value purple">'+fmt(metaRevTot)+'</div><div class="kpi-delta">ROAS Meta: '+metaRoasTot.toFixed(2)+'x</div></div>' +
           '<div class="kpi-card green"><div class="kpi-label">Receita real (checkout)</div><div class="kpi-value green">'+fmt(receitaAp)+'</div><div class="kpi-delta">ROAS real: '+realRoasTotal.toFixed(2)+'x</div></div>' +
           '<div class="kpi-card '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'"><div class="kpi-label">Diferença de tracking</div><div class="kpi-value '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'">'+(diffPct===null?'—':(diffPct>0?'+':'')+diffPct+'%')+'</div><div class="kpi-delta">real vs. reportado pelo Meta</div></div>' +
         '</div>' +
@@ -523,6 +550,7 @@ function render(rows) {
   } else if (SCRIPT_URL_META) {
     roasSection = '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div></div></div><div class="no-data">Não foi possível carregar os dados do Meta Ads.</div></div>';
   }
+  document.getElementById('meta-camp-filter-wrap').style.display = (metaAdsData && metaAdsData.items && metaAdsData.items.length) ? 'block' : 'none';
 
   document.getElementById('main-content').innerHTML =
 
@@ -806,6 +834,101 @@ document.getElementById('camp-filter-apply').addEventListener('click', function(
   }
   updateCampFilterLabel();
   document.getElementById('camp-filter-panel').classList.remove('open');
+  if (allRows.length) render(allRows);
+});
+
+// ---- Filtro de campanhas do Meta Ads ----
+function getMetaCampaignSpend() {
+  var spend = {};
+  (metaAdsData && metaAdsData.items ? metaAdsData.items : []).forEach(function(it){
+    spend[it.campaign] = (spend[it.campaign]||0) + it.spend;
+  });
+  return spend;
+}
+function renderMetaCampaignList(searchText) {
+  var spend = getMetaCampaignSpend();
+  var names = Object.keys(spend).sort(function(a,b){return spend[b]-spend[a];});
+  var terms = (searchText||'').toLowerCase().split(',').map(function(t){return t.trim();}).filter(Boolean);
+  var visible = terms.length ? names.filter(function(n){
+    var nl = n.toLowerCase();
+    return terms.some(function(t){return nl.indexOf(t)>=0;});
+  }) : names;
+  var listEl = document.getElementById('meta-camp-filter-list');
+  if (!visible.length) { listEl.innerHTML = '<div class="camp-filter-empty">Nenhuma campanha encontrada</div>'; return; }
+  listEl.innerHTML = visible.map(function(n){
+    var checked = !metaCampaignDraft || metaCampaignDraft.has(n);
+    return '<label class="camp-filter-item"><input type="checkbox" data-camp="'+escHtml(n)+'" '+(checked?'checked':'')+'><span title="'+escHtml(n)+'">'+escHtml(n)+'</span><span class="cnt">'+fmtShort(spend[n])+'</span></label>';
+  }).join('');
+  listEl.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      if (!metaCampaignDraft) metaCampaignDraft = new Set(names);
+      var camp = this.getAttribute('data-camp');
+      if (this.checked) metaCampaignDraft.add(camp); else metaCampaignDraft.delete(camp);
+    });
+  });
+}
+function updateMetaCampFilterLabel() {
+  var label = document.getElementById('meta-camp-filter-label');
+  var btn = document.getElementById('meta-camp-filter-btn');
+  if (!metaCampaignFilterSelected) {
+    label.textContent = 'Meta Ads: todas as campanhas';
+    btn.classList.remove('active-filter');
+  } else {
+    label.textContent = 'Meta Ads: '+metaCampaignFilterSelected.size+' campanha'+(metaCampaignFilterSelected.size!==1?'s':'')+' selecionada'+(metaCampaignFilterSelected.size!==1?'s':'');
+    btn.classList.add('active-filter');
+  }
+}
+document.getElementById('meta-camp-filter-btn').addEventListener('click', function(e){
+  e.stopPropagation();
+  var panel = document.getElementById('meta-camp-filter-panel');
+  var opening = !panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if (opening) {
+    metaCampaignDraft = metaCampaignFilterSelected ? new Set(metaCampaignFilterSelected) : null;
+    document.getElementById('meta-camp-filter-search').value = '';
+    renderMetaCampaignList('');
+  }
+});
+document.addEventListener('click', function(e){
+  var panel = document.getElementById('meta-camp-filter-panel');
+  if (panel.classList.contains('open') && !panel.contains(e.target) && e.target.id!=='meta-camp-filter-btn') {
+    panel.classList.remove('open');
+  }
+});
+document.getElementById('meta-camp-filter-search').addEventListener('input', function(){
+  renderMetaCampaignList(this.value);
+});
+document.querySelectorAll('#meta-camp-filter-panel .camp-filter-quick button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var q = this.getAttribute('data-q');
+    document.getElementById('meta-camp-filter-search').value = q;
+    var spend = getMetaCampaignSpend();
+    if (q) {
+      var terms = q.split(',').map(function(t){return t.trim().toLowerCase();});
+      metaCampaignDraft = new Set(Object.keys(spend).filter(function(n){
+        var nl = n.toLowerCase();
+        return terms.some(function(t){return nl.indexOf(t)>=0;});
+      }));
+    } else {
+      metaCampaignDraft = new Set(Object.keys(spend));
+    }
+    renderMetaCampaignList(q);
+  });
+});
+document.getElementById('meta-camp-filter-clear').addEventListener('click', function(){
+  metaCampaignDraft = null;
+  document.getElementById('meta-camp-filter-search').value = '';
+  renderMetaCampaignList('');
+});
+document.getElementById('meta-camp-filter-apply').addEventListener('click', function(){
+  var allNames = Object.keys(getMetaCampaignSpend());
+  if (!metaCampaignDraft || metaCampaignDraft.size===allNames.length) {
+    metaCampaignFilterSelected = null;
+  } else {
+    metaCampaignFilterSelected = metaCampaignDraft;
+  }
+  updateMetaCampFilterLabel();
+  document.getElementById('meta-camp-filter-panel').classList.remove('open');
   if (allRows.length) render(allRows);
 });
 
