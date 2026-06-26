@@ -223,7 +223,7 @@ function fmtShort(n) {
 function sClass(s) {
   return s==='aprovado'?'ap':s==='cancelado'?'cn':s==='reembolsado'?'re':'ot';
 }
-function top(obj,n) {
+function topN(obj,n) {
   return Object.entries(obj).sort(function(a,b){return b[1]-a[1];}).slice(0,n);
 }
 function barList(items, max, color) {
@@ -241,11 +241,7 @@ function render(rows) {
   var filtered = filterPeriod(rows, activePeriod);
   var meta = parseInt(document.getElementById('meta-input').value) || 500;
 
-  if (!filtered.length) {
-    document.getElementById('main-content').innerHTML =
-      '<div class="empty-box"><div style="font-size:32px;margin-bottom:12px">📊</div><div style="font-size:14px;color:var(--text);margin-bottom:6px">Nenhuma venda ainda</div><div>Assim que a Goexplosion registrar as primeiras transações, todos os gráficos e KPIs aparecem aqui automaticamente.</div><div style="margin-top:12px;font-size:11px;color:var(--muted2)">Linhas na planilha: '+rows.length+' · Período: '+(activePeriod?activePeriod+' dias':'tudo')+'</div></div>';
-    return;
-  }
+  var semVendas = !filtered.length;
 
   var receitaAp=0,qtdAp=0,qtdCn=0,qtdRe=0,qtdTotal=0;
   var porDia={},porProd={},porSource={},porMedium={},porCamp={};
@@ -309,10 +305,10 @@ function render(rows) {
   var apData = dias.map(function(d){return porDia[d]?porDia[d].ap:0;});
   var cnData = dias.map(function(d){return porDia[d]?porDia[d].cn:0;});
 
-  var topProd=top(porProd,6),topSource=top(porSource,5),topMedium=top(porMedium,4),topCamp=top(porCamp,6);
-  var topPagto=top(Object.fromEntries(Object.entries(porPagto).map(function(e){return [e[0],e[1].val];})),5);
-  var topCupom=top(Object.fromEntries(Object.entries(porCupom).map(function(e){return [e[0],e[1].val];})),6);
-  var topIngresso=top(porIngresso,6);
+  var topProd=topN(porProd,6),topSource=topN(porSource,5),topMedium=topN(porMedium,4),topCamp=topN(porCamp,6);
+  var topPagto=topN(Object.fromEntries(Object.entries(porPagto).map(function(e){return [e[0],e[1].val];})),5);
+  var topCupom=topN(Object.fromEntries(Object.entries(porCupom).map(function(e){return [e[0],e[1].val];})),6);
+  var topIngresso=topN(porIngresso,6);
 
   var maxProd=topProd.length?topProd[0][1]:1;
   var maxSource=topSource.length?topSource[0][1]:1;
@@ -345,12 +341,14 @@ function render(rows) {
   }).join('')||'<div class="no-data">Sem dados</div>';
 
   var cupomRows = Object.keys(porCupom).length ?
-    top(Object.fromEntries(Object.entries(porCupom).map(function(e){return [e[0],e[1].qtd];})),6).map(function(it){
+    topN(Object.fromEntries(Object.entries(porCupom).map(function(e){return [e[0],e[1].qtd];})),6).map(function(it){
       var val = porCupom[it[0]]?porCupom[it[0]].val:0;
       return '<div class="pill-item"><div class="pill-name">'+it[0]+'</div><div class="pill-count">'+it[1]+'x</div><div class="pill-val">'+fmtShort(val)+'</div></div>';
     }).join('') : '<div class="no-data">Nenhum cupom usado ainda</div>';
 
   document.getElementById('main-content').innerHTML =
+
+    (semVendas ? '<div class="empty-box" style="margin-bottom:14px"><div style="font-size:14px;color:var(--text);margin-bottom:4px">📊 Nenhuma venda registrada ainda neste período</div><div>O dashboard abaixo já está pronto e vai preencher automaticamente assim que a Goexplosion registrar as primeiras transações. Linhas na planilha: '+rows.length+'.</div></div>' : '') +
 
     // BARRA DE META
     '<div class="meta-card">' +
@@ -401,7 +399,7 @@ function render(rows) {
       '</div>' +
     '</div>' +
 
-    '<div class="footer"><span><span class="footer-dot"></span>Dados ao vivo — Goexplosion</span><span>Atualizado: '+new Date().toLocaleString('pt-BR')+'</span></div>';
+    '<div class="footer"><span><span class="footer-dot"></span>'+(semVendas?'Aguardando primeiras vendas — Goexplosion':'Dados ao vivo — Goexplosion')+'</span><span>Atualizado: '+new Date().toLocaleString('pt-BR')+'</span></div>';
 
   // Animar barra de progresso
   setTimeout(function(){
