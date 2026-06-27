@@ -215,7 +215,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025)}
     <div class="topbar-right">
       <div class="meta-input">
         <label>Meta de ingressos:</label>
-        <input type="number" id="meta-input" value="500" min="1">
+        <input type="number" id="meta-input" value="1200" min="1">
       </div>
       <div class="filter-group" id="period-filters">
         <button class="filter-btn" data-period="7">7 dias</button>
@@ -412,7 +412,7 @@ function destroyChart(key) {
 
 function render(rows) {
   var filtered = filterByCampaign(filterByDate(rows));
-  var meta = parseInt(document.getElementById('meta-input').value) || 500;
+  var meta = parseInt(document.getElementById('meta-input').value) || 1200;
 
   var semVendas = !filtered.length;
 
