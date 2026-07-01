@@ -676,7 +676,7 @@ function loadData() {
   document.getElementById('main-content').innerHTML = '<div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>';
   var controller = new AbortController();
   var timeout = setTimeout(function(){controller.abort();}, 15000);
-  fetch(SCRIPT_URL, {signal: controller.signal, redirect: 'follow', mode: 'cors'})
+  fetch(SCRIPT_URL + '?t=' + Date.now(), {signal: controller.signal, redirect: 'follow', mode: 'cors'})
     .then(function(res){
       clearTimeout(timeout);
       if (!res.ok) throw new Error('HTTP '+res.status);
