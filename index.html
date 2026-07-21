@@ -432,18 +432,34 @@ function barList(items, max, color, wide) {
     return '<div class="bar-item"><div class="bar-name'+(wide?' wide':'')+'" title="'+it[0]+'">'+it[0]+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><div class="bar-val">'+fmtShort(it[1])+'</div></div>';
   }).join('');
 }
+// Palavras genéricas demais para servir de casamento (aparecem em quase toda campanha)
+var MATCH_STOP = {'summit':1,'summit26':1,'summitpb':1,'summitpb2026':1,'pbxp':1,'pbxp2026':1,
+  'paraiba':1,'jeff':1,'je- f':1,'2024':1,'2025':1,'2026':1,'lote':1,'lote0':1,'lote1':1,'lote2':1,
+  'campanha':1,'venda':1,'vendas':1,'lead':1,'leads':1,'frio':1,'quente':1,'morno':1,'teste':1,
+  'cbo':1,'abo':1,'remarketing':1,'rmkt':1,'publico':1,'completo':1,'criativo':1,'evento':1,
+  'ingresso':1,'ingressos':1,'boost':1,'trafego':1,'alcance':1,'conversao':1,'captacao':1};
 function normWords(s) {
   return String(s||'').toLowerCase().replace(/[^a-z0-9çãõáéíóúâêô]+/g,' ').split(' ').filter(function(w){return w.length>2;});
 }
+// Só palavras "significativas" (fora da lista genérica) contam para o casamento
+function sigWords(s) {
+  return normWords(s).filter(function(w){ return !MATCH_STOP[w]; });
+}
+// Casa o nome da campanha do Meta com o utm_campaign da planilha.
+// Exige correspondência FORTE: pelo menos 2 palavras significativas em comum
+// (ou todas, quando a campanha tem só 1-2 palavras próprias). Sem isso, retorna null
+// e o dashboard mostra "sem match" em vez de atribuir uma venda errada.
 function matchCampaign(metaName, utmKeys) {
-  var metaWords = normWords(metaName);
+  var metaWords = sigWords(metaName);
+  if (!metaWords.length) return null;
   var best=null, bestScore=0;
   utmKeys.forEach(function(k){
-    var kWords = normWords(k);
-    var score = metaWords.filter(function(w){return kWords.indexOf(w)>=0;}).length;
-    if (score>bestScore) { bestScore=score; best=k; }
+    var kWords = sigWords(k);
+    var common = metaWords.filter(function(w){return kWords.indexOf(w)>=0;}).length;
+    if (common>bestScore) { bestScore=common; best=k; }
   });
-  return bestScore>0 ? best : null;
+  var minReq = Math.min(2, metaWords.length);
+  return bestScore>=minReq ? best : null;
 }
 function destroyChart(key) {
   if (charts[key]) { charts[key].destroy(); charts[key]=null; }
@@ -706,6 +722,7 @@ function render(rows) {
           '<div class="kpi-card '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'"><div class="kpi-label">Diferença de tracking</div><div class="kpi-value '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'">'+(diffPct===null?'—':(diffPct>0?'+':'')+diffPct+'%')+'</div><div class="kpi-delta">real vs. reportado pelo Meta</div></div>' +
         '</div>' +
         '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita Meta</th><th>ROAS Meta</th><th>Receita real</th><th>ROAS real</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="6" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
+        '<div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">⚠️ <strong>Gasto</strong>, <strong>Receita Meta</strong> e <strong>ROAS Meta</strong> vêm direto do Meta Ads (confiáveis). Já <strong>Receita real</strong> e <strong>ROAS real</strong> são estimados casando o <em>nome</em> da campanha do Meta com o <em>utm_campaign</em> da planilha — quando não há correspondência clara, aparece "sem match" (não é atribuída nenhuma venda por chute).</div>' +
       '</div>';
   } else if (SCRIPT_URL_META) {
     roasSection = '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div></div></div><div class="no-data">Não foi possível carregar os dados do Meta Ads.</div></div>';
