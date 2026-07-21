@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Summit Paraíba 2026</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
@@ -17,7 +17,7 @@
   --amber:#FF8327;--amber-bg:rgba(255,131,39,0.14);
   --purple:#5b8cff;--purple-bg:rgba(91,140,255,0.12);
   --teal:#2fe0d0;--teal-bg:rgba(47,224,208,0.12);
-  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --font:'Inter',sans-serif;--display:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
   --radius:16px;--radius-sm:10px;
   --shadow:0 1px 2px rgba(0,0,0,0.5),0 8px 24px -8px rgba(0,0,0,0.6);
   --shadow-hover:0 1px 2px rgba(0,0,0,0.5),0 16px 40px -12px rgba(0,0,0,0.7);
@@ -47,7 +47,7 @@ body::before{
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:13px}
 .brand-dot{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;box-shadow:0 6px 18px -4px var(--accent-glow);letter-spacing:-0.02em}
-.brand-name{font-size:16px;font-weight:700;letter-spacing:-0.01em}
+.brand-name{font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:-0.01em}
 .brand-sub{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}
 .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .filter-group{display:flex;gap:4px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:4px}
@@ -104,8 +104,8 @@ body::before{
 /* META PROGRESS */
 .meta-card{background:linear-gradient(160deg,rgba(14,50,104,0.92),rgba(8,35,74,0.92));border:1px solid var(--border);border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;box-shadow:var(--shadow);animation:fadeUp 0.4s ease both}
 .meta-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.meta-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.01em}
-.meta-pct{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:-0.02em}
+.meta-title{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.01em}
+.meta-pct{font-family:var(--display);font-size:30px;font-weight:800;color:var(--accent);letter-spacing:-0.02em}
 .meta-sub{font-size:11px;color:var(--muted);margin-top:2px}
 .progress-track{height:9px;background:var(--bg3);border-radius:6px;overflow:hidden;margin-bottom:12px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.3)}
 .progress-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width 1s cubic-bezier(.16,1,.3,1);box-shadow:0 0 12px var(--accent-glow)}
@@ -130,7 +130,7 @@ body::before{
 .kpi-card.purple::after{background:var(--purple)}
 .kpi-card.teal::after{background:var(--teal)}
 .kpi-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;font-weight:600}
-.kpi-value{font-size:25px;font-weight:700;line-height:1;margin-bottom:7px;letter-spacing:-0.02em}
+.kpi-value{font-family:var(--display);font-size:26px;font-weight:800;line-height:1;margin-bottom:7px;letter-spacing:-0.02em}
 .kpi-value.green{color:var(--green)}
 .kpi-value.red{color:var(--red)}
 .kpi-value.amber{color:var(--amber)}
@@ -142,13 +142,31 @@ body::before{
 .row2{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
 .row3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
 .row4{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
 .card{background:linear-gradient(160deg,rgba(14,50,104,0.92),rgba(8,35,74,0.92));border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);transition:border-color 0.2s;animation:fadeUp 0.45s ease both}
 .card:hover{border-color:var(--accent)}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.card-title{font-size:13.5px;font-weight:600;color:var(--text);letter-spacing:-0.01em}
-.card-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
-.chart-wrap{position:relative;height:200px}
-.chart-wrap-sm{position:relative;height:150px}
+.card-title{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.01em}
+.card-sub{font-size:11.5px;color:var(--muted);margin-top:3px}
+.chart-wrap{position:relative;height:230px}
+.chart-wrap-sm{position:relative;height:160px}
+
+/* SECTION HEADERS */
+.section-head{display:flex;align-items:center;gap:12px;margin:30px 2px 14px}
+.section-head:first-of-type{margin-top:8px}
+.section-head .sh-icon{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,rgba(255,122,26,0.18),rgba(255,122,26,0.06));border:1px solid rgba(255,122,26,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-head .sh-icon svg{width:15px;height:15px;stroke:var(--accent)}
+.section-head .sh-title{font-family:var(--display);font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.01em}
+.section-head .sh-sub{font-size:11.5px;color:var(--muted2);margin-top:1px}
+.section-head .sh-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent);margin-left:4px}
+
+/* KPI DELTA (variação) */
+.kpi-trend{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;margin-top:2px}
+.kpi-trend.up{color:var(--green);background:var(--green-bg)}
+.kpi-trend.down{color:var(--red);background:var(--red-bg)}
+.kpi-trend.flat{color:var(--muted);background:var(--bg3)}
+.kpi-trend svg{width:10px;height:10px}
+.kpi-trend-lbl{font-size:10.5px;color:var(--muted2);margin-top:5px}
 
 /* BARRAS */
 .utm-section{margin-bottom:14px}
@@ -193,13 +211,34 @@ tbody tr:hover td{background:rgba(255,255,255,0.025)}
 .pill-count{font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:10px;flex-shrink:0}
 .pill-val{font-size:11px;color:var(--green);font-family:var(--mono);margin-left:10px;flex-shrink:0;font-weight:500}
 
-.footer{margin-top:32px;padding-top:18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--muted2);flex-wrap:wrap;gap:8px}
+/* COLUMN CHART (hora / dia da semana) */
+.colchart{display:flex;align-items:flex-end;gap:5px;height:140px;padding-top:10px}
+.colchart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end;min-width:0}
+.colchart .col .barwrap{width:100%;display:flex;align-items:flex-end;justify-content:center;flex:1}
+.colchart .col .bar{width:100%;max-width:30px;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,rgba(91,140,255,0.9),rgba(91,140,255,0.28));transition:height .9s cubic-bezier(.16,1,.3,1);min-height:3px}
+.colchart .col.peak .bar{background:linear-gradient(180deg,#FF8327,var(--accent));box-shadow:0 0 14px rgba(255,122,26,0.35)}
+.colchart .col .clbl{font-size:10px;color:var(--muted);font-weight:500;white-space:nowrap}
+.colchart .col.peak .clbl{color:var(--accent);font-weight:700}
+.colchart-val{font-family:var(--mono);font-size:10px;color:var(--muted2);text-align:center}
+
+/* SPLIT (à vista x parcelado) */
+.split-bar{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:4px 0 16px;background:var(--bg3)}
+.split-bar span{display:block;transition:width .9s cubic-bezier(.16,1,.3,1)}
+.split-legend{display:flex;flex-direction:column;gap:10px}
+.split-row{display:flex;align-items:center;gap:10px}
+.split-row .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.split-row .snm{font-size:12.5px;color:var(--text);font-weight:500;flex:1}
+.split-row .sct{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.split-row .sv{font-family:var(--mono);font-size:11.5px;color:var(--text);font-weight:600;min-width:60px;text-align:right}
+
+.footer{margin-top:36px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--muted2);flex-wrap:wrap;gap:8px}
 .footer-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite;box-shadow:0 0 8px var(--green)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .no-data{font-size:11.5px;color:var(--muted);padding:10px 0}
-@media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.row2,.row4{grid-template-columns:minmax(0,1fr)}.row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:640px){.shell{padding:16px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.row3{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.row2,.row4{grid-template-columns:minmax(0,1fr)}.row3,.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.shell{padding:16px 14px 40px}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.row3,.grid2{grid-template-columns:minmax(0,1fr)}.topbar{margin-bottom:18px}.card{padding:18px 16px}.kpi-value{font-size:22px}.chart-wrap{height:210px}.section-head{margin:22px 0 12px}}
+@media(max-width:400px){.kpi-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -409,6 +448,73 @@ function matchCampaign(metaName, utmKeys) {
 function destroyChart(key) {
   if (charts[key]) { charts[key].destroy(); charts[key]=null; }
 }
+function parseHour(str) {
+  if (!str) return null;
+  var m = String(str).match(/(\d{1,2}):(\d{2})/);
+  if (m) { var h = parseInt(m[1],10); if (h>=0 && h<=23) return h; }
+  return null;
+}
+// Linhas do período imediatamente anterior ao atual (mesma duração)
+function filterPrevPeriod(rows) {
+  var inRange = function(d, from, to){ return d && d>=from && d<to; };
+  if (customRange) {
+    var dur = customRange.to.getTime() - customRange.from.getTime();
+    var pfrom = new Date(customRange.from.getTime() - dur);
+    var pto = new Date(customRange.from.getTime());
+    return rows.filter(function(r){ var d=parseDate(g(r,C.dataTransacao))||parseDate(g(r,C.dataCompra)); return inRange(d,pfrom,pto); });
+  }
+  if (!activePeriod) return null; // "Tudo" não tem período anterior
+  var cutAtual = new Date(); cutAtual.setDate(cutAtual.getDate()-activePeriod);
+  var cutAnt = new Date(); cutAnt.setDate(cutAnt.getDate()-activePeriod*2);
+  return rows.filter(function(r){ var d=parseDate(g(r,C.dataTransacao))||parseDate(g(r,C.dataCompra)); return inRange(d,cutAnt,cutAtual); });
+}
+// Métricas resumidas de um conjunto de linhas (para comparação)
+function periodMetrics(rows) {
+  var receita=0, vendas=0;
+  rows.forEach(function(r){
+    var status = normStatus(g(r,C.status)+' '+g(r,C.descStatus));
+    if (status==='aprovado'){ receita += parseVal(g(r,C.total)); vendas++; }
+  });
+  return {receita:receita, vendas:vendas};
+}
+// Badge de variação percentual vs período anterior
+function trendHtml(cur, prev) {
+  if (prev===null || prev===undefined) return '<div class="kpi-trend-lbl">período completo</div>';
+  if (prev===0) {
+    if (cur===0) return '<span class="kpi-trend flat">■ 0%</span><div class="kpi-trend-lbl">vs. período anterior</div>';
+    return '<span class="kpi-trend up">▲ novo</span><div class="kpi-trend-lbl">vs. período anterior</div>';
+  }
+  var pct = Math.round(((cur-prev)/prev)*100);
+  var cls = pct>0?'up':(pct<0?'down':'flat');
+  var arrow = pct>0?'▲':(pct<0?'▼':'■');
+  return '<span class="kpi-trend '+cls+'">'+arrow+' '+(pct>0?'+':'')+pct+'%</span><div class="kpi-trend-lbl">vs. período anterior</div>';
+}
+// Gráfico de colunas em CSS puro (hora do dia / dia da semana)
+function colChart(vals, labels, isMoney) {
+  var max = Math.max.apply(null, vals.concat([1]));
+  var peak = -1, peakV = 0;
+  vals.forEach(function(v,i){ if (v>peakV){ peakV=v; peak=i; } });
+  var body = vals.map(function(v,i){
+    var h = Math.round((v/max)*100);
+    var tip = labels[i]+': '+(isMoney?fmtShort(v):v);
+    return '<div class="col'+(i===peak&&v>0?' peak':'')+'"><div class="barwrap"><div class="bar" style="height:'+h+'%" title="'+tip+'"></div></div><div class="clbl">'+labels[i]+'</div></div>';
+  }).join('');
+  return '<div class="colchart">'+body+'</div>';
+}
+// Seção de cabeçalho temático
+function sectionHead(icon, title, sub) {
+  return '<div class="section-head"><div class="sh-icon">'+icon+'</div><div><div class="sh-title">'+title+'</div><div class="sh-sub">'+sub+'</div></div><div class="sh-line"></div></div>';
+}
+var ICON = {
+  visao:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>',
+  meta:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+  tempo:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  comport:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 4v16"/></svg>',
+  trafego:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>',
+  produto:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12l8.73-5.04M12 22V12"/></svg>',
+  geo:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  lista:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>'
+};
 
 function render(rows) {
   var filtered = filterByCampaign(filterByDate(rows));
@@ -419,6 +525,10 @@ function render(rows) {
   var receitaAp=0,qtdAp=0,qtdCn=0,qtdRe=0,qtdTotal=0,ingressosAp=0;
   var porDia={},porProd={},porSource={},porMedium={},porCamp={},porTerm={},porContent={};
   var porPagto={},porCupom={},porIngresso={},porEstado={},porCidade={};
+  var receitaPorDia={};
+  var porDiaSemana=[0,0,0,0,0,0,0];
+  var porHora=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+  var parcAvista={qtd:0,val:0}, parcParcelado={qtd:0,val:0};
   var transacoes=[];
   var receitaCn=0;
 
@@ -470,6 +580,13 @@ function render(rows) {
       porIngresso[produto]=(porIngresso[produto]||0)+qtdProduto;
       porEstado[estado]=(porEstado[estado]||0)+total;
       porCidade[cidade]=(porCidade[cidade]||0)+total;
+      if (dKey) receitaPorDia[dKey]=(receitaPorDia[dKey]||0)+total;
+      if (d) porDiaSemana[d.getDay()]++;
+      var hora = parseHour(dateStr);
+      if (hora!==null) porHora[hora]++;
+      var parcelas = parseInt(g(r,C.qtdParcelas))||1;
+      if (parcelas>1){ parcParcelado.qtd++; parcParcelado.val+=total; }
+      else { parcAvista.qtd++; parcAvista.val+=total; }
     }
 
     transacoes.push({d:d,dateStr:dateStr,nome:nome,produto:produto,total:total,status:status,pagto:pagto});
@@ -486,6 +603,32 @@ function render(rows) {
   var diasLabels = dias.map(function(d){var p=d.split('-');return p[2]+'/'+p[1];});
   var apData = dias.map(function(d){return porDia[d]?porDia[d].ap:0;});
   var cnData = dias.map(function(d){return porDia[d]?porDia[d].cn:0;});
+  // Receita por dia + acumulado (pacing)
+  var recDiaData = dias.map(function(d){return receitaPorDia[d]||0;});
+  var acumData = []; var acc=0;
+  recDiaData.forEach(function(v){ acc+=v; acumData.push(acc); });
+
+  // Comparação com o período anterior
+  var prevRaw = filterPrevPeriod(rows);
+  var prevM = prevRaw ? periodMetrics(filterByCampaign(prevRaw)) : null;
+  var prevReceita = prevM ? prevM.receita : null;
+  var prevVendas = prevM ? prevM.vendas : null;
+
+  // Ritmo diário
+  var diasComVenda = Object.keys(receitaPorDia).length || 1;
+  var ritmoDia = ingressosAp / diasComVenda;
+
+  // Dia da semana
+  var dowLbl = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  // Hora do dia agrupada de 2 em 2
+  var horaVals=[], horaLbl=[];
+  for (var _h=0; _h<24; _h+=2){ horaVals.push(porHora[_h]+porHora[_h+1]); horaLbl.push(_h+'h'); }
+
+  // À vista x parcelado
+  var parcTotalVal = parcAvista.val + parcParcelado.val;
+  var pctAvista = parcTotalVal>0 ? Math.round((parcAvista.val/parcTotalVal)*100) : 0;
+  var pctParcelado = 100 - pctAvista;
 
   var topProd=topN(porProd,6),topSource=topN(porSource,5),topMedium=topN(porMedium,4),topCamp=topN(porCamp,6);
   var topTerm=topN(porTerm,6),topContent=topN(porContent,6);
@@ -573,6 +716,9 @@ function render(rows) {
 
     (semVendas ? '<div class="empty-box" style="margin-bottom:14px"><div style="font-size:14px;color:var(--text);margin-bottom:4px">📊 Nenhuma venda registrada ainda neste período</div><div>O dashboard abaixo já está pronto e vai preencher automaticamente assim que a Goexplosion registrar as primeiras transações. Linhas na planilha: '+rows.length+'.</div></div>' : '') +
 
+    // ===== SEÇÃO: VISÃO GERAL =====
+    sectionHead(ICON.visao,'Visão geral','panorama do período selecionado') +
+
     // BARRA DE META
     '<div class="meta-card">' +
       '<div class="meta-header">' +
@@ -584,57 +730,80 @@ function render(rows) {
         '<div class="meta-stat"><strong>'+ingressosAp+'</strong> vendidos</div>' +
         '<div class="meta-stat"><strong>'+metaFaltam+'</strong> faltam</div>' +
         '<div class="meta-stat">Meta: <strong>'+meta+'</strong></div>' +
+        '<div class="meta-stat">Ritmo: <strong>'+ritmoDia.toFixed(1)+'/dia</strong></div>' +
         '<div class="meta-stat">Receita: <strong>'+fmt(receitaAp)+'</strong></div>' +
       '</div>' +
     '</div>' +
 
     // KPIs
     '<div class="kpi-grid">' +
-      '<div class="kpi-card green"><div class="kpi-label">Receita aprovada</div><div class="kpi-value green">'+fmt(receitaAp)+'</div><div class="kpi-delta">'+qtdAp+' venda'+(qtdAp!==1?'s':'')+'</div></div>' +
-      '<div class="kpi-card red"><div class="kpi-label">Cancelamentos</div><div class="kpi-value red">'+qtdCn+'</div><div class="kpi-delta">'+fmt(receitaCn)+' perdidos</div></div>' +
-      '<div class="kpi-card amber"><div class="kpi-label">Taxa de aprovação</div><div class="kpi-value amber">'+taxa+'%</div><div class="kpi-delta">'+qtdTotal+' transaç'+(qtdTotal===1?'ão':'ões')+'</div></div>' +
-      '<div class="kpi-card purple"><div class="kpi-label">Ticket médio</div><div class="kpi-value purple">'+fmt(ticket)+'</div><div class="kpi-delta">por venda aprovada</div></div>' +
-      '<div class="kpi-card teal"><div class="kpi-label">Reembolsos</div><div class="kpi-value teal">'+qtdRe+'</div><div class="kpi-delta">'+(qtdTotal>0?Math.round((qtdRe/qtdTotal)*100):0)+'% do total</div></div>' +
+      '<div class="kpi-card green"><div class="kpi-label">Receita aprovada</div><div class="kpi-value green">'+fmt(receitaAp)+'</div>'+trendHtml(receitaAp,prevReceita)+'</div>' +
+      '<div class="kpi-card teal"><div class="kpi-label">Vendas aprovadas</div><div class="kpi-value teal">'+qtdAp+'</div>'+trendHtml(qtdAp,prevVendas)+'</div>' +
+      '<div class="kpi-card amber"><div class="kpi-label">Taxa de aprovação</div><div class="kpi-value amber">'+taxa+'%</div><div class="kpi-trend-lbl">'+qtdTotal+' transaç'+(qtdTotal===1?'ão':'ões')+'</div></div>' +
+      '<div class="kpi-card purple"><div class="kpi-label">Ticket médio</div><div class="kpi-value purple">'+fmt(ticket)+'</div><div class="kpi-trend-lbl">por venda aprovada</div></div>' +
+      '<div class="kpi-card red"><div class="kpi-label">Cancel. + reembolsos</div><div class="kpi-value red">'+(qtdCn+qtdRe)+'</div><div class="kpi-trend-lbl">'+fmt(receitaCn)+' perdidos</div></div>' +
     '</div>' +
 
-    roasSection +
+    // ===== SEÇÃO: META ADS / ROAS =====
+    (roasSection ? sectionHead(ICON.meta,'Meta Ads · ROAS','investimento em anúncios vs. vendas reais') + roasSection : '') +
 
-    // LINHA: gráfico + UTM
-    '<div class="row2">' +
-      '<div class="card"><div class="card-header"><div><div class="card-title">Vendas por dia</div><div class="card-sub">aprovadas vs cancelamentos</div></div></div><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>' +
+    // ===== SEÇÃO: FATURAMENTO NO TEMPO =====
+    sectionHead(ICON.tempo,'Faturamento no tempo','evolução diária e acumulada da receita') +
+    '<div class="grid2">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Faturamento diário e acumulado</div><div class="card-sub">receita aprovada por dia + curva acumulada</div></div></div><div class="chart-wrap"><canvas id="recChart"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Pedidos por dia</div><div class="card-sub">aprovados vs cancelamentos</div></div></div><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>' +
+    '</div>' +
+
+    // ===== SEÇÃO: COMPORTAMENTO DE COMPRA =====
+    sectionHead(ICON.comport,'Comportamento de compra','quando e como as pessoas compram') +
+    '<div class="card" style="margin-bottom:14px"><div class="card-header"><div><div class="card-title">Vendas por hora do dia</div><div class="card-sub">horários de pico de compra (faixas de 2h)</div></div></div>'+colChart(horaVals,horaLbl)+'</div>' +
+    '<div class="grid2">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Vendas por dia da semana</div><div class="card-sub">quantidade de vendas aprovadas</div></div></div>'+colChart(porDiaSemana,dowLbl)+'</div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">À vista × parcelado</div><div class="card-sub">distribuição da receita por forma de pagamento</div></div></div>'+
+        (parcTotalVal>0 ?
+          '<div class="split-bar"><span style="width:'+pctAvista+'%;background:var(--green)"></span><span style="width:'+pctParcelado+'%;background:var(--accent)"></span></div>' +
+          '<div class="split-legend">' +
+            '<div class="split-row"><span class="dot" style="background:var(--green)"></span><span class="snm">À vista</span><span class="sct">'+parcAvista.qtd+'x · '+pctAvista+'%</span><span class="sv">'+fmtShort(parcAvista.val)+'</span></div>' +
+            '<div class="split-row"><span class="dot" style="background:var(--accent)"></span><span class="snm">Parcelado</span><span class="sct">'+parcParcelado.qtd+'x · '+pctParcelado+'%</span><span class="sv">'+fmtShort(parcParcelado.val)+'</span></div>' +
+          '</div>'
+        : '<div class="no-data">Sem vendas aprovadas no período</div>')+'</div>' +
+    '</div>' +
+
+    // ===== SEÇÃO: ORIGEM & CAMPANHAS =====
+    sectionHead(ICON.trafego,'Origem & Campanhas','de onde as vendas estão vindo (UTM)') +
+    '<div class="grid2">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Desempenho UTM</div><div class="card-sub">receita por origem</div></div></div>' +
         '<div class="utm-section"><div class="utm-label">Source</div>'+barList(topSource,maxSource,'var(--accent)',true)+'</div>' +
         '<div class="utm-section"><div class="utm-label">Medium</div>'+barList(topMedium,maxMedium,'var(--purple)',true)+'</div>' +
       '</div>' +
-    '</div>' +
-
-    // LINHA: produtos + ingressos + campanhas
-    '<div class="row3">' +
-      '<div class="card"><div class="card-header"><div><div class="card-title">Receita por produto</div><div class="card-sub">valor aprovado</div></div></div>'+prodRows+'</div>' +
-      '<div class="card"><div class="card-header"><div><div class="card-title">Ingressos vendidos</div><div class="card-sub">quantidade por tipo</div></div></div>'+ingressoRows+'</div>' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Top campaigns</div><div class="card-sub">UTM Campaign</div></div></div>'+barList(topCamp,maxCamp,'#FF7A1A',true)+'</div>' +
     '</div>' +
-
-    // LINHA: term + content
-    '<div class="row2">' +
+    '<div class="grid2">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">UTM Term</div><div class="card-sub">receita por termo</div></div></div>'+barList(topTerm,maxTerm,'#FF8327',true)+'</div>' +
       '<div class="card"><div class="card-header"><div><div class="card-title">UTM Content</div><div class="card-sub">receita por conteúdo</div></div></div>'+barList(topContent,maxContent,'#ff6b7a',true)+'</div>' +
     '</div>' +
 
-    // LINHA: vendas por estado + cidade
-    '<div class="row2">' +
+    // ===== SEÇÃO: PRODUTOS & PAGAMENTOS =====
+    sectionHead(ICON.produto,'Produtos & Pagamentos','o que vende e como é pago') +
+    '<div class="grid2">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Receita por produto</div><div class="card-sub">valor aprovado</div></div></div>'+prodRows+'</div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Ingressos vendidos</div><div class="card-sub">quantidade por tipo</div></div></div>'+ingressoRows+'</div>' +
+    '</div>' +
+    '<div class="grid2">' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Método de pagamento</div><div class="card-sub">receita e qtd aprovadas</div></div></div><div class="pill-list">'+pagtoRows+'</div></div>' +
+      '<div class="card"><div class="card-header"><div><div class="card-title">Cupons utilizados</div><div class="card-sub">qtd de uso e receita gerada</div></div></div><div class="pill-list">'+cupomRows+'</div></div>' +
+    '</div>' +
+
+    // ===== SEÇÃO: GEOGRAFIA =====
+    sectionHead(ICON.geo,'Geografia','de onde compram') +
+    '<div class="grid2">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Vendas por estado</div><div class="card-sub">receita por estado (UF)</div></div></div>'+barList(topEstado,maxEstado,'#5b8cff',true)+'</div>' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Vendas por cidade</div><div class="card-sub">receita por cidade</div></div></div>'+barList(topCidade,maxCidade,'#2fe0d0',true)+'</div>' +
     '</div>' +
 
-    // LINHA: tabela + pagamento + cupom
-    '<div class="row4">' +
-      '<div class="card"><div class="card-header"><div><div class="card-title">Últimas transações</div><div class="card-sub">mais recentes primeiro</div></div></div><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Comprador</th><th>Produto</th><th>Pagamento</th><th>Valor</th><th>Status</th></tr></thead><tbody>'+txRows+'</tbody></table></div></div>' +
-      '<div style="display:flex;flex-direction:column;gap:12px">' +
-        '<div class="card"><div class="card-header"><div><div class="card-title">Método de pagamento</div><div class="card-sub">receita e qtd aprovadas</div></div></div><div class="pill-list">'+pagtoRows+'</div></div>' +
-        '<div class="card"><div class="card-header"><div><div class="card-title">Cupons utilizados</div><div class="card-sub">qtd de uso e receita gerada</div></div></div><div class="pill-list">'+cupomRows+'</div></div>' +
-      '</div>' +
-    '</div>' +
+    // ===== SEÇÃO: TRANSAÇÕES =====
+    sectionHead(ICON.lista,'Transações','últimos lançamentos da planilha') +
+    '<div class="card"><div class="card-header"><div><div class="card-title">Últimas transações</div><div class="card-sub">mais recentes primeiro</div></div></div><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Comprador</th><th>Produto</th><th>Pagamento</th><th>Valor</th><th>Status</th></tr></thead><tbody>'+txRows+'</tbody></table></div></div>' +
 
     '<div class="footer"><span><span class="footer-dot"></span>'+(semVendas?'Aguardando primeiras vendas — Goexplosion':'Dados ao vivo — Goexplosion')+'</span><span>Atualizado: '+new Date().toLocaleString('pt-BR')+'</span></div>';
 
@@ -666,6 +835,35 @@ function render(rows) {
         scales:{
           x:{ticks:{color:'#AAB4C8',font:{size:10},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}},
           y:{ticks:{color:'#AAB4C8',font:{size:10},stepSize:1},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false},beginAtZero:true}
+        }
+      }
+    });
+  }
+
+  // Gráfico de faturamento diário + acumulado
+  destroyChart('rec');
+  var ctxRec = document.getElementById('recChart');
+  if (ctxRec && dias.length) {
+    charts.rec = new Chart(ctxRec, {
+      data:{
+        labels:diasLabels,
+        datasets:[
+          {type:'bar',label:'Receita/dia',data:recDiaData,backgroundColor:'rgba(255,122,26,0.55)',hoverBackgroundColor:'rgba(255,122,26,0.9)',borderRadius:4,yAxisID:'y',order:2},
+          {type:'line',label:'Acumulado',data:acumData,borderColor:'#5b8cff',backgroundColor:'rgba(91,140,255,0.10)',borderWidth:2,pointRadius:0,pointHoverRadius:4,tension:0.35,fill:true,yAxisID:'y2',order:1}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{color:'#C8D0E0',font:{size:11,family:'Inter'},boxWidth:10,padding:12}},
+          tooltip:{backgroundColor:'#0B2A5A',borderColor:'rgba(255,255,255,0.14)',borderWidth:1,titleColor:'#ffffff',bodyColor:'#C8D0E0',cornerRadius:8,padding:10,
+            callbacks:{label:function(c){return c.dataset.label+': '+fmt(c.parsed.y);}}}
+        },
+        scales:{
+          x:{ticks:{color:'#AAB4C8',font:{size:10},maxTicksLimit:10},grid:{display:false},border:{display:false}},
+          y:{position:'left',ticks:{color:'#AAB4C8',font:{size:10},callback:function(v){return fmtShort(v);}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false},beginAtZero:true},
+          y2:{position:'right',ticks:{color:'#5b8cff',font:{size:10},callback:function(v){return fmtShort(v);}},grid:{drawOnChartArea:false},border:{display:false},beginAtZero:true}
         }
       }
     });
