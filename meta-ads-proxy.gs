@@ -64,13 +64,17 @@ function doGet(e) {
     var items = (body.data || []).map(function(row) {
       var spend = parseFloat(row.spend || 0);
       var purchases = 0, revenue = 0;
+      // IMPORTANTE: contar SOMENTE 'omni_purchase'. O Meta devolve a mesma compra
+      // em várias linhas (omni_purchase, purchase, offsite_conversion.fb_pixel_purchase...).
+      // Somar mais de uma conta a mesma venda 2x e dobra os números. 'omni_purchase'
+      // é a métrica unificada e é a que bate com o Gerenciador de Anúncios.
       (row.actions || []).forEach(function(a) {
-        if (a.action_type === 'omni_purchase' || a.action_type === 'purchase') {
+        if (a.action_type === 'omni_purchase') {
           purchases += parseFloat(a.value || 0);
         }
       });
       (row.action_values || []).forEach(function(a) {
-        if (a.action_type === 'omni_purchase' || a.action_type === 'purchase') {
+        if (a.action_type === 'omni_purchase') {
           revenue += parseFloat(a.value || 0);
         }
       });
