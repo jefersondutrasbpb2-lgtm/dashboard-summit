@@ -698,34 +698,29 @@ function render(rows) {
     var metaItems = metaCampaignFilterSelected ? metaAdsData.items.filter(function(it){return metaCampaignFilterSelected.has(it.campaign);}) : metaAdsData.items;
     var metaSpendTot = metaItems.reduce(function(s,i){return s+i.spend;},0);
     var metaRevTot = metaItems.reduce(function(s,i){return s+i.revenue;},0);
+    var metaPurchTot = metaItems.reduce(function(s,i){return s+(i.purchases||0);},0);
     var metaRoasTot = metaSpendTot>0 ? (metaRevTot/metaSpendTot) : 0;
-    var utmKeys = Object.keys(porCamp);
-    var realRoasTotal = metaSpendTot>0 ? (receitaAp/metaSpendTot) : 0;
-    var diffPct = metaRevTot>0 ? Math.round(((receitaAp-metaRevTot)/metaRevTot)*100) : null;
+    // Tabela: SOMENTE dados que o próprio Meta Ads reporta (mesmos números do gerenciador)
     var roasRows = metaItems.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
-      var matched = matchCampaign(it.campaign, utmKeys);
-      var realRev = matched ? porCamp[matched] : 0;
-      var realRoasC = it.spend>0 ? (realRev/it.spend) : 0;
-      return '<tr><td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.campaign+'">'+it.campaign+'</td>'+
+      return '<tr><td style="color:var(--muted);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.campaign+'">'+it.campaign+'</td>'+
         '<td class="td-mono">'+fmt(it.spend)+'</td>'+
         '<td class="td-mono">'+fmt(it.revenue)+'</td>'+
-        '<td class="td-mono">'+it.roas.toFixed(2)+'x</td>'+
-        '<td class="td-mono">'+(matched?fmt(realRev):'—')+'</td>'+
-        '<td class="td-mono" style="color:'+(matched?(realRoasC>=it.roas?'var(--green)':'var(--red)'):'var(--muted)')+'">'+(matched?realRoasC.toFixed(2)+'x':'sem match')+'</td></tr>';
+        '<td class="td-mono">'+(it.purchases||0)+'</td>'+
+        '<td class="td-mono" style="color:'+(it.roas>=1?'var(--green)':(it.roas>0?'var(--amber)':'var(--muted)'))+'">'+(it.roas>0?it.roas.toFixed(2)+'x':'—')+'</td></tr>';
     }).join('');
     roasSection =
-      '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div><div class="card-sub">comparação entre o que o Meta reporta e o que realmente caiu na planilha'+(metaCampaignFilterSelected?' · filtrado por '+metaCampaignFilterSelected.size+' campanha(s)':'')+'</div></div></div>' +
+      '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">Desempenho no Meta Ads</div><div class="card-sub">dados direto do Meta Ads — os mesmos números do Gerenciador de Anúncios'+(metaCampaignFilterSelected?' · filtrado por '+metaCampaignFilterSelected.size+' campanha(s)':'')+'</div></div></div>' +
         '<div class="kpi-grid" style="margin-bottom:16px">' +
-          '<div class="kpi-card amber"><div class="kpi-label">Gasto no Meta Ads</div><div class="kpi-value amber">'+fmt(metaSpendTot)+'</div><div class="kpi-delta">período selecionado</div></div>' +
-          '<div class="kpi-card purple"><div class="kpi-label">Receita reportada (Meta)</div><div class="kpi-value purple">'+fmt(metaRevTot)+'</div><div class="kpi-delta">ROAS Meta: '+metaRoasTot.toFixed(2)+'x</div></div>' +
-          '<div class="kpi-card green"><div class="kpi-label">Receita real (checkout)</div><div class="kpi-value green">'+fmt(receitaAp)+'</div><div class="kpi-delta">ROAS real: '+realRoasTotal.toFixed(2)+'x</div></div>' +
-          '<div class="kpi-card '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'"><div class="kpi-label">Diferença de tracking</div><div class="kpi-value '+(diffPct===null?'teal':(diffPct<0?'red':'teal'))+'">'+(diffPct===null?'—':(diffPct>0?'+':'')+diffPct+'%')+'</div><div class="kpi-delta">real vs. reportado pelo Meta</div></div>' +
+          '<div class="kpi-card amber"><div class="kpi-label">Investimento (gasto)</div><div class="kpi-value amber">'+fmt(metaSpendTot)+'</div><div class="kpi-trend-lbl">período selecionado</div></div>' +
+          '<div class="kpi-card purple"><div class="kpi-label">Receita (Meta)</div><div class="kpi-value purple">'+fmt(metaRevTot)+'</div><div class="kpi-trend-lbl">atribuída pelo Meta</div></div>' +
+          '<div class="kpi-card green"><div class="kpi-label">ROAS (Meta)</div><div class="kpi-value green">'+metaRoasTot.toFixed(2)+'x</div><div class="kpi-trend-lbl">retorno sobre o gasto</div></div>' +
+          '<div class="kpi-card teal"><div class="kpi-label">Compras (Meta)</div><div class="kpi-value teal">'+metaPurchTot+'</div><div class="kpi-trend-lbl">conversões atribuídas</div></div>' +
         '</div>' +
-        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita Meta</th><th>ROAS Meta</th><th>Receita real</th><th>ROAS real</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="6" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
-        '<div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">⚠️ <strong>Gasto</strong>, <strong>Receita Meta</strong> e <strong>ROAS Meta</strong> vêm direto do Meta Ads (confiáveis). Já <strong>Receita real</strong> e <strong>ROAS real</strong> são estimados casando o <em>nome</em> da campanha do Meta com o <em>utm_campaign</em> da planilha — quando não há correspondência clara, aparece "sem match" (não é atribuída nenhuma venda por chute).</div>' +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita</th><th>Compras</th><th>ROAS</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="5" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
+        '<div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Todos os números desta seção vêm direto da API do Meta Ads (gasto, receita, compras e ROAS atribuídos pelo próprio Meta). As vendas reais confirmadas no checkout estão nas seções abaixo, com base na planilha e nas UTMs.</div>' +
       '</div>';
   } else if (SCRIPT_URL_META) {
-    roasSection = '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">ROAS — Meta Ads vs. Checkout real</div></div></div><div class="no-data">Não foi possível carregar os dados do Meta Ads.</div></div>';
+    roasSection = '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">Desempenho no Meta Ads</div></div></div><div class="no-data">Não foi possível carregar os dados do Meta Ads.</div></div>';
   }
   document.getElementById('meta-camp-filter-wrap').style.display = (metaAdsData && metaAdsData.items && metaAdsData.items.length) ? 'block' : 'none';
 
@@ -762,7 +757,7 @@ function render(rows) {
     '</div>' +
 
     // ===== SEÇÃO: META ADS / ROAS =====
-    (roasSection ? sectionHead(ICON.meta,'Meta Ads · ROAS','investimento em anúncios vs. vendas reais') + roasSection : '') +
+    (roasSection ? sectionHead(ICON.meta,'Meta Ads','desempenho reportado pelo Gerenciador de Anúncios') + roasSection : '') +
 
     // ===== SEÇÃO: FATURAMENTO NO TEMPO =====
     sectionHead(ICON.tempo,'Faturamento no tempo','evolução diária e acumulada da receita') +
