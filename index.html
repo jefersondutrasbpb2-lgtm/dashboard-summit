@@ -720,7 +720,7 @@ function render(rows) {
         '<div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Todos os números desta seção vêm direto da API do Meta Ads (gasto, receita, compras e ROAS atribuídos pelo próprio Meta). As vendas reais confirmadas no checkout estão nas seções abaixo, com base na planilha e nas UTMs.</div>' +
       '</div>';
   } else if (SCRIPT_URL_META) {
-    roasSection = '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">Desempenho no Meta Ads</div></div></div><div class="no-data">Não foi possível carregar os dados do Meta Ads.</div></div>';
+    roasSection = '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">Desempenho no Meta Ads</div></div></div><div class="no-data">Não foi possível carregar os dados do Meta Ads depois de 3 tentativas. Se persistir, teste em aba anônima (pode ser uma extensão do navegador travando script.google.com). <button onclick="loadMetaAdsData()" style="margin-top:8px;padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;cursor:pointer">Tentar novamente</button></div></div>';
   }
   document.getElementById('meta-camp-filter-wrap').style.display = (metaAdsData && metaAdsData.items && metaAdsData.items.length) ? 'block' : 'none';
 
@@ -882,13 +882,38 @@ function render(rows) {
   }
 }
 
+// Busca uma URL com timeout e nova(s) tentativa(s) automática(s) antes de desistir.
+// Isso cobre o caso comum de Apps Script "dormindo" (cold start) demorar mais que o esperado
+// para responder na primeira chamada.
+function fetchWithRetry(url, opts, attempts, timeoutMs) {
+  attempts = attempts || 3;
+  timeoutMs = timeoutMs || 20000;
+  return new Promise(function(resolve, reject){
+    function attempt(remaining){
+      var controller = new AbortController();
+      var timeout = setTimeout(function(){controller.abort();}, timeoutMs);
+      fetch(url, Object.assign({}, opts, {signal: controller.signal}))
+        .then(function(res){
+          clearTimeout(timeout);
+          resolve(res);
+        })
+        .catch(function(err){
+          clearTimeout(timeout);
+          if (remaining > 1) {
+            setTimeout(function(){ attempt(remaining - 1); }, 800);
+          } else {
+            reject(err);
+          }
+        });
+    }
+    attempt(attempts);
+  });
+}
+
 function loadData() {
   document.getElementById('main-content').innerHTML = '<div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>';
-  var controller = new AbortController();
-  var timeout = setTimeout(function(){controller.abort();}, 15000);
-  fetch(SCRIPT_URL + '?t=' + Date.now(), {signal: controller.signal, redirect: 'follow', mode: 'cors'})
+  fetchWithRetry(SCRIPT_URL + '?t=' + Date.now(), {redirect: 'follow', mode: 'cors'}, 3, 20000)
     .then(function(res){
-      clearTimeout(timeout);
       if (!res.ok) throw new Error('HTTP '+res.status);
       return res.json();
     })
@@ -906,7 +931,7 @@ function loadData() {
     })
     .catch(function(e){
       document.getElementById('main-content').innerHTML =
-        '<div class="error-box"><strong>Não foi possível carregar os dados.</strong><br><br>Erro: '+e.message+'<br><br>Verifique se o Apps Script está implantado com acesso <strong>"Qualquer pessoa"</strong> e tente novamente.</div>';
+        '<div class="error-box"><strong>Não foi possível carregar os dados depois de 3 tentativas.</strong><br><br>Erro: '+e.message+'<br><br>Se isso persistir, pode ser uma extensão do navegador (bloqueador de anúncios/privacidade) travando o domínio script.google.com. Teste em uma aba anônima para confirmar.<br><br><button onclick="loadData()" style="margin-top:8px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;cursor:pointer">Tentar novamente</button></div>';
     });
   loadMetaAdsData();
 }
@@ -920,13 +945,13 @@ function loadMetaAdsData() {
   } else {
     qs = 'days=' + (activePeriod || '0');
   }
-  fetch(SCRIPT_URL_META + '?' + qs, {redirect: 'follow', mode: 'cors'})
+  fetchWithRetry(SCRIPT_URL_META + '?' + qs, {redirect: 'follow', mode: 'cors'}, 3, 20000)
     .then(function(res){ return res.json(); })
     .then(function(data){
       metaAdsData = (data && !data.error) ? data : null;
       if (allRows.length) render(allRows);
     })
-    .catch(function(){ metaAdsData = null; });
+    .catch(function(){ metaAdsData = null; if (allRows.length) render(allRows); });
 }
 
 document.querySelectorAll('[data-period]').forEach(function(btn){
