@@ -700,12 +700,15 @@ function render(rows) {
     var metaRevTot = metaItems.reduce(function(s,i){return s+i.revenue;},0);
     var metaPurchTot = metaItems.reduce(function(s,i){return s+(i.purchases||0);},0);
     var metaRoasTot = metaSpendTot>0 ? (metaRevTot/metaSpendTot) : 0;
+    var metaCpaTot = metaPurchTot>0 ? (metaSpendTot/metaPurchTot) : 0;
     // Tabela: SOMENTE dados que o próprio Meta Ads reporta (mesmos números do gerenciador)
     var roasRows = metaItems.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
+      var itCpa = (it.purchases||0)>0 ? (it.spend/it.purchases) : null;
       return '<tr><td style="color:var(--muted);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.campaign+'">'+it.campaign+'</td>'+
         '<td class="td-mono">'+fmt(it.spend)+'</td>'+
         '<td class="td-mono">'+fmt(it.revenue)+'</td>'+
         '<td class="td-mono">'+(it.purchases||0)+'</td>'+
+        '<td class="td-mono">'+(itCpa!==null?fmt(itCpa):'—')+'</td>'+
         '<td class="td-mono" style="color:'+(it.roas>=1?'var(--green)':(it.roas>0?'var(--amber)':'var(--muted)'))+'">'+(it.roas>0?it.roas.toFixed(2)+'x':'—')+'</td></tr>';
     }).join('');
     roasSection =
@@ -715,8 +718,9 @@ function render(rows) {
           '<div class="kpi-card purple"><div class="kpi-label">Receita (Meta)</div><div class="kpi-value purple">'+fmt(metaRevTot)+'</div><div class="kpi-trend-lbl">atribuída pelo Meta</div></div>' +
           '<div class="kpi-card green"><div class="kpi-label">ROAS (Meta)</div><div class="kpi-value green">'+metaRoasTot.toFixed(2)+'x</div><div class="kpi-trend-lbl">retorno sobre o gasto</div></div>' +
           '<div class="kpi-card teal"><div class="kpi-label">Compras (Meta)</div><div class="kpi-value teal">'+metaPurchTot+'</div><div class="kpi-trend-lbl">conversões atribuídas</div></div>' +
+          '<div class="kpi-card red"><div class="kpi-label">CPA médio</div><div class="kpi-value red">'+(metaCpaTot>0?fmt(metaCpaTot):'—')+'</div><div class="kpi-trend-lbl">custo por compra, gasto ÷ compras</div></div>' +
         '</div>' +
-        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita</th><th>Compras</th><th>ROAS</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="5" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita</th><th>Compras</th><th>CPA</th><th>ROAS</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="6" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
         '<div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Todos os números desta seção vêm direto da API do Meta Ads (gasto, receita, compras e ROAS atribuídos pelo próprio Meta). As vendas reais confirmadas no checkout estão nas seções abaixo, com base na planilha e nas UTMs.</div>' +
       '</div>';
   } else if (SCRIPT_URL_META) {
