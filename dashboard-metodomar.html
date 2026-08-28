@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — Summit Paraíba 2026</title>
+<title>Dashboard — Método MAR</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -245,16 +245,16 @@ tbody tr:hover td{background:rgba(255,255,255,0.025)}
 <div class="shell">
   <div class="topbar">
     <div class="brand">
-      <div class="brand-dot">S</div>
+      <div class="brand-dot">M</div>
       <div>
-        <div class="brand-name">Summit Paraíba 2026</div>
+        <div class="brand-name">Método MAR</div>
         <div class="brand-sub">Dashboard de vendas — Goexplosion</div>
       </div>
     </div>
     <div class="topbar-right">
       <div class="meta-input">
         <label>Meta de ingressos:</label>
-        <input type="number" id="meta-input" value="1200" min="1">
+        <input type="number" id="meta-input" value="100" min="1">
       </div>
       <div class="filter-group" id="period-filters">
         <button class="filter-btn" data-period="7">7 dias</button>
@@ -325,12 +325,16 @@ tbody tr:hover td{background:rgba(255,255,255,0.025)}
   </div>
 </div>
 <script>
-var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0ffbpGtdumiFdS5MOVVX2EUj3xTj0NYLOeglla21g17mtfFg6uFKgNXwRd7RUV0Uw/exec';
+// TODO: colocar aqui a URL do Apps Script publicado para a planilha de vendas do Método MAR
+// (mesmo formato/contrato do proxy do Summit). Enquanto ficar vazio, o dashboard mostra um
+// aviso pedindo pra configurar, em vez de tentar buscar dados que não existem.
+var SCRIPT_URL = '';
 // URL do proxy do Meta Ads (Apps Script separado, ver meta-ads-proxy.gs). Deixe vazio para ocultar a comparação de ROAS.
+// Mesma conta de anúncio do Summit — o filtro abaixo garante que só as campanhas deste evento entram.
 var SCRIPT_URL_META = 'https://script.google.com/macros/s/AKfycbwZij5pI2MPUOuxOEx9f5S404GuJmqO8VxRZupqxXk0Bvo8Bod0BK6xkI2rgQewYZU/exec';
 // Palavra-chave pra filtrar só as campanhas deste evento (útil quando a mesma conta de anúncio
 // roda mais de um evento ao mesmo tempo). Vazio = sem filtro, mostra todas as campanhas da conta.
-var META_CAMPAIGN_FILTER = '';
+var META_CAMPAIGN_FILTER = 'metodomar2026_set';
 
 var C = {
   ordemID:0,produtoID:1,tipoEvento:2,dataTransacao:3,produto:4,
@@ -436,8 +440,8 @@ function barList(items, max, color, wide) {
   }).join('');
 }
 // Palavras genéricas demais para servir de casamento (aparecem em quase toda campanha)
-var MATCH_STOP = {'summit':1,'summit26':1,'summitpb':1,'summitpb2026':1,'pbxp':1,'pbxp2026':1,
-  'paraiba':1,'jeff':1,'je- f':1,'2024':1,'2025':1,'2026':1,'lote':1,'lote0':1,'lote1':1,'lote2':1,
+var MATCH_STOP = {'metodomar':1,'metodomar2026':1,'metodomar2025':1,'metodo':1,'mar':1,'set':1,
+  'setembro':1,'jeff':1,'je- f':1,'2024':1,'2025':1,'2026':1,'lote':1,'lote0':1,'lote1':1,'lote2':1,
   'campanha':1,'venda':1,'vendas':1,'lead':1,'leads':1,'frio':1,'quente':1,'morno':1,'teste':1,
   'cbo':1,'abo':1,'remarketing':1,'rmkt':1,'publico':1,'completo':1,'criativo':1,'evento':1,
   'ingresso':1,'ingressos':1,'boost':1,'trafego':1,'alcance':1,'conversao':1,'captacao':1};
@@ -918,6 +922,12 @@ function fetchWithRetry(url, opts, attempts, timeoutMs) {
 }
 
 function loadData() {
+  if (!SCRIPT_URL) {
+    document.getElementById('main-content').innerHTML =
+      '<div class="error-box"><strong>Planilha ainda não configurada.</strong><br><br>Defina a variável <code>SCRIPT_URL</code> no topo do arquivo com a URL do Apps Script publicado para a planilha de vendas do Método MAR.</div>';
+    loadMetaAdsData();
+    return;
+  }
   document.getElementById('main-content').innerHTML = '<div class="loading-screen"><div class="spinner"></div><div class="loading-text">Carregando dados da planilha...</div></div>';
   fetchWithRetry(SCRIPT_URL + '?t=' + Date.now(), {redirect: 'follow', mode: 'cors'}, 3, 20000)
     .then(function(res){
