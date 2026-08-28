@@ -1,11 +1,11 @@
 /**
- * Proxy do Meta Ads para o dashboard Summit Paraíba.
+ * Proxy do Meta Ads para os dashboards (Summit Paraíba e Método MAR).
  *
  * O QUE ISSO FAZ
- * Busca gasto, compras e receita reportados pelo Meta Ads e devolve só os
- * números já calculados (gasto, ROAS) em JSON. O token de acesso do Meta
- * fica guardado nas "Propriedades do script" (criptografado pelo Google),
- * nunca aparece no código nem no dashboard público.
+ * Busca gasto, impressões, cliques, leads, compras e receita reportados
+ * pelo Meta Ads e devolve os números já calculados em JSON. O token de
+ * acesso do Meta fica guardado nas "Propriedades do script" (criptografado
+ * pelo Google), nunca aparece no código nem no dashboard público.
  *
  * COMO IMPLANTAR
  * 1. Acesse https://script.google.com e crie um novo projeto.
@@ -25,7 +25,24 @@
  * app, peça a permissão "ads_read" e gere um token. Para não precisar
  * renovar toda hora, troque por um token de longa duração (60 dias) ou,
  * melhor ainda, use um "System User Token" do Business Manager (não expira).
+ *
+ * PARÂMETROS ACEITOS NA URL
+ *   days=7|30|90|0            -> atalho pros mesmos períodos do Gerenciador
+ *   since=YYYY-MM-DD&until=…  -> período customizado
+ *   campaign_filter=palavra   -> só campanhas cujo nome contém essa palavra
+ *                                 (case-insensitive). Vazio = todas as campanhas
+ *                                 da conta. Usado quando a mesma conta roda mais
+ *                                 de um evento ao mesmo tempo.
  */
+
+// Tipos de ação do Meta que contam como "lead" pra este dashboard. Cobre
+// formulário nativo (Instant Form / lead do site) e clique-pra-conversa no
+// WhatsApp. Se os números não baterem com o Gerenciador, ajuste esta lista.
+var LEAD_ACTION_TYPES = {
+  'lead': 1,
+  'onsite_conversion.lead_grouped': 1,
+  'onsite_conversion.messaging_conversation_started_7d': 1
+};
 
 function doGet(e) {
   var props = PropertiesService.getScriptProperties();
@@ -48,8 +65,13 @@ function doGet(e) {
     timeParam = 'date_preset=' + preset;
   }
 
+  // time_increment=1 pede uma linha por (campanha, dia) em vez de uma linha
+  // por campanha só. Com isso dá pra somar tanto os totais por campanha
+  // (agrupando os dias) quanto o ritmo diário de gasto/leads (agrupando as
+  // campanhas), numa chamada só à API.
   var url = 'https://graph.facebook.com/v21.0/' + actId + '/insights' +
-    '?level=campaign&limit=200&fields=campaign_name,spend,actions,action_values' +
+    '?level=campaign&limit=500&time_increment=1' +
+    '&fields=campaign_name,spend,impressions,clicks,actions,action_values' +
     '&' + timeParam +
     '&access_token=' + encodeURIComponent(token);
 
@@ -73,42 +95,105 @@ function doGet(e) {
       });
     }
 
-    var items = rawData.map(function(row) {
-      var spend = parseFloat(row.spend || 0);
+    function extractPurchasesRevenue(row) {
       var purchases = 0, revenue = 0;
       // IMPORTANTE: contar SOMENTE 'omni_purchase'. O Meta devolve a mesma compra
       // em várias linhas (omni_purchase, purchase, offsite_conversion.fb_pixel_purchase...).
       // Somar mais de uma conta a mesma venda 2x e dobra os números. 'omni_purchase'
       // é a métrica unificada e é a que bate com o Gerenciador de Anúncios.
       (row.actions || []).forEach(function(a) {
-        if (a.action_type === 'omni_purchase') {
-          purchases += parseFloat(a.value || 0);
-        }
+        if (a.action_type === 'omni_purchase') purchases += parseFloat(a.value || 0);
       });
       (row.action_values || []).forEach(function(a) {
-        if (a.action_type === 'omni_purchase') {
-          revenue += parseFloat(a.value || 0);
-        }
+        if (a.action_type === 'omni_purchase') revenue += parseFloat(a.value || 0);
       });
+      return {purchases: purchases, revenue: revenue};
+    }
+
+    function extractLeads(row) {
+      var leads = 0;
+      (row.actions || []).forEach(function(a) {
+        if (LEAD_ACTION_TYPES[a.action_type]) leads += parseFloat(a.value || 0);
+      });
+      return leads;
+    }
+
+    // ---- Agrupa por campanha (soma os dias de cada campanha) ----
+    var byCampaign = {};
+    var order = [];
+    rawData.forEach(function(row) {
+      var name = row.campaign_name;
+      if (!byCampaign[name]) {
+        byCampaign[name] = {campaign: name, spend: 0, impressions: 0, clicks: 0, leads: 0, purchases: 0, revenue: 0};
+        order.push(name);
+      }
+      var pr = extractPurchasesRevenue(row);
+      byCampaign[name].spend += parseFloat(row.spend || 0);
+      byCampaign[name].impressions += parseFloat(row.impressions || 0);
+      byCampaign[name].clicks += parseFloat(row.clicks || 0);
+      byCampaign[name].leads += extractLeads(row);
+      byCampaign[name].purchases += pr.purchases;
+      byCampaign[name].revenue += pr.revenue;
+    });
+
+    var items = order.map(function(name) {
+      var c = byCampaign[name];
       return {
-        campaign: row.campaign_name,
-        spend: spend,
-        purchases: purchases,
-        revenue: revenue,
-        roas: spend > 0 ? (revenue / spend) : 0
+        campaign: c.campaign,
+        spend: c.spend,
+        impressions: c.impressions,
+        clicks: c.clicks,
+        leads: c.leads,
+        purchases: c.purchases,
+        revenue: c.revenue,
+        roas: c.spend > 0 ? (c.revenue / c.spend) : 0,
+        ctr: c.impressions > 0 ? (c.clicks / c.impressions) * 100 : 0,
+        cpc: c.clicks > 0 ? (c.spend / c.clicks) : 0,
+        cpm: c.impressions > 0 ? (c.spend / c.impressions) * 1000 : 0,
+        cpl: c.leads > 0 ? (c.spend / c.leads) : 0
       };
     });
+
+    // ---- Agrupa por dia (soma as campanhas de cada dia) — ritmo diário ----
+    var byDay = {};
+    var dayOrder = [];
+    rawData.forEach(function(row) {
+      var date = row.date_start;
+      if (!date) return;
+      if (!byDay[date]) {
+        byDay[date] = {date: date, spend: 0, leads: 0, purchases: 0, revenue: 0};
+        dayOrder.push(date);
+      }
+      var pr = extractPurchasesRevenue(row);
+      byDay[date].spend += parseFloat(row.spend || 0);
+      byDay[date].leads += extractLeads(row);
+      byDay[date].purchases += pr.purchases;
+      byDay[date].revenue += pr.revenue;
+    });
+    dayOrder.sort();
+    var daily = dayOrder.map(function(d) { return byDay[d]; });
 
     var totalSpend = items.reduce(function(s, i) { return s + i.spend; }, 0);
     var totalRevenue = items.reduce(function(s, i) { return s + i.revenue; }, 0);
     var totalPurchases = items.reduce(function(s, i) { return s + i.purchases; }, 0);
+    var totalImpressions = items.reduce(function(s, i) { return s + i.impressions; }, 0);
+    var totalClicks = items.reduce(function(s, i) { return s + i.clicks; }, 0);
+    var totalLeads = items.reduce(function(s, i) { return s + i.leads; }, 0);
 
     return jsonOut({
       items: items,
+      daily: daily,
       totalSpend: totalSpend,
       totalRevenue: totalRevenue,
       totalPurchases: totalPurchases,
-      totalRoas: totalSpend > 0 ? (totalRevenue / totalSpend) : 0
+      totalImpressions: totalImpressions,
+      totalClicks: totalClicks,
+      totalLeads: totalLeads,
+      totalRoas: totalSpend > 0 ? (totalRevenue / totalSpend) : 0,
+      totalCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
+      totalCpc: totalClicks > 0 ? (totalSpend / totalClicks) : 0,
+      totalCpm: totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0,
+      totalCpl: totalLeads > 0 ? (totalSpend / totalLeads) : 0
     });
   } catch (err) {
     return jsonOut({error: 'Falha ao buscar dados do Meta: ' + err.message});
