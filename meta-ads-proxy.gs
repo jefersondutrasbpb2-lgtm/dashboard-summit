@@ -61,7 +61,19 @@ function doGet(e) {
       return jsonOut({error: 'Erro do Meta: ' + body.error.message});
     }
 
-    var items = (body.data || []).map(function(row) {
+    // Filtro opcional por nome de campanha (?campaign_filter=palavra-chave), sem diferenciar
+    // maiúsc/minúsc. Usado quando a mesma conta de anúncio roda mais de um evento/produto ao
+    // mesmo tempo, para cada dashboard só ver as próprias campanhas. Sem o parâmetro, retorna
+    // tudo como antes (comportamento padrão inalterado).
+    var campaignFilter = (e.parameter.campaign_filter || '').toLowerCase().trim();
+    var rawData = body.data || [];
+    if (campaignFilter) {
+      rawData = rawData.filter(function(row) {
+        return String(row.campaign_name || '').toLowerCase().indexOf(campaignFilter) >= 0;
+      });
+    }
+
+    var items = rawData.map(function(row) {
       var spend = parseFloat(row.spend || 0);
       var purchases = 0, revenue = 0;
       // IMPORTANTE: contar SOMENTE 'omni_purchase'. O Meta devolve a mesma compra
