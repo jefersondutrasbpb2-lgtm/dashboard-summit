@@ -333,6 +333,41 @@ var SCRIPT_URL_META = 'https://script.google.com/macros/s/AKfycbwZij5pI2MPUOuxOE
 // roda mais de um evento ao mesmo tempo). Vazio = sem filtro, mostra todas as campanhas da conta.
 var META_CAMPAIGN_FILTER = 'metodomar2026_set';
 
+// Metas e parâmetros reais do briefing do Método MAR. Usados pra colorir os
+// KPIs (no alvo / atenção / fora do alvo) e gerar os alertas automáticos.
+var EVENTO = {
+  local: 'João Pessoa',
+  dataEvento: '17–18 de setembro de 2026',
+  inicioCampanha: '2026-08-25',
+  diasTotais: 20,
+  verbaTotal: 8000,
+  verbaDiaria: 400,
+  metaVendasTotalEvento: 35,
+  metaVendasTrafegoMin: 13,
+  metaVendasTrafegoMax: 16,
+  metaLeadsMin: 320,
+  metaLeadsMax: 400,
+  cplAlvoMin: 20,
+  cplAlvoMax: 25,
+  cplAlerta: 35,
+  cacAlvoMax: 600,
+  ticket: 2000
+};
+// Dia atual da campanha (1 = dia do início), sem depender de data fixa no código.
+function diaAtualCampanha() {
+  var inicio = new Date(EVENTO.inicioCampanha + 'T00:00:00');
+  var hoje = new Date();
+  var diff = Math.floor((hoje - inicio) / 86400000) + 1;
+  return Math.max(1, Math.min(diff, EVENTO.diasTotais));
+}
+// Fontes UTM tratadas como tráfego pago (Meta) pra calcular CAC/ROAS reais.
+// Mesmo princípio de separação de fontes já usado no resto do dashboard: aqui
+// só agrupa por ORIGEM (não tenta casar venda com campanha específica).
+var PAID_TRAFFIC_SOURCES = {'facebook':1,'fb':1,'instagram':1,'ig':1,'meta':1,'meta ads':1};
+function isPaidTraffic(source) {
+  return !!PAID_TRAFFIC_SOURCES[String(source||'').toLowerCase().trim()];
+}
+
 var C = {
   ordemID:0,produtoID:1,tipoEvento:2,dataTransacao:3,produto:4,
   quantidade:5,email:6,nomeComprador:7,celular:8,
@@ -425,6 +460,17 @@ function fmtShort(n) {
 }
 function sClass(s) {
   return s==='aprovado'?'ap':s==='cancelado'?'cn':s==='reembolsado'?'re':'ot';
+}
+// status: 'good' | 'watch' | 'critical' | 'idle' — mesmas cores já usadas no resto do dashboard.
+var ALVO_STATUS = {
+  good: {color:'var(--green)', bg:'var(--green-bg)', label:'No alvo'},
+  watch: {color:'var(--amber)', bg:'var(--amber-bg)', label:'Atenção'},
+  critical: {color:'var(--red)', bg:'var(--red-bg)', label:'Fora do alvo'},
+  idle: {color:'var(--muted)', bg:'var(--bg3)', label:'Aguardando dado'}
+};
+function alvoPill(status, customLabel) {
+  var s = ALVO_STATUS[status] || ALVO_STATUS.idle;
+  return '<span style="display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:600;color:'+s.color+';background:'+s.bg+'">'+(customLabel||s.label)+'</span>';
 }
 function topN(obj,n) {
   return Object.entries(obj).sort(function(a,b){return b[1]-a[1];}).slice(0,n);
@@ -543,6 +589,7 @@ function render(rows) {
   var semVendas = !filtered.length;
 
   var receitaAp=0,qtdAp=0,qtdCn=0,qtdRe=0,qtdTotal=0,ingressosAp=0;
+  var vendasTrafegoAp=0,receitaTrafegoAp=0;
   var porDia={},porProd={},porSource={},porMedium={},porCamp={},porTerm={},porContent={};
   var porPagto={},porCupom={},porIngresso={},porEstado={},porCidade={};
   var receitaPorDia={};
@@ -572,7 +619,7 @@ function render(rows) {
     var dKey = d ? d.toISOString().split('T')[0] : null;
 
     qtdTotal++;
-    if (status==='aprovado'){receitaAp+=total;qtdAp++;ingressosAp+=qtdProduto;}
+    if (status==='aprovado'){receitaAp+=total;qtdAp++;ingressosAp+=qtdProduto;if(isPaidTraffic(source)){vendasTrafegoAp++;receitaTrafegoAp+=total;}}
     if (status==='cancelado'){qtdCn++;receitaCn+=total;}
     if (status==='reembolsado') qtdRe++;
 
@@ -703,15 +750,21 @@ function render(rows) {
     var metaSpendTot = metaItems.reduce(function(s,i){return s+i.spend;},0);
     var metaRevTot = metaItems.reduce(function(s,i){return s+i.revenue;},0);
     var metaPurchTot = metaItems.reduce(function(s,i){return s+(i.purchases||0);},0);
+    var metaLeadsTot = metaItems.reduce(function(s,i){return s+(i.leads||0);},0);
     var metaRoasTot = metaSpendTot>0 ? (metaRevTot/metaSpendTot) : 0;
     var metaCpaTot = metaPurchTot>0 ? (metaSpendTot/metaPurchTot) : 0;
+    var metaCplTot = metaLeadsTot>0 ? (metaSpendTot/metaLeadsTot) : 0;
+    var cplStatus = metaLeadsTot===0 ? 'idle' : (metaCplTot>EVENTO.cplAlerta ? 'critical' : (metaCplTot>=EVENTO.cplAlvoMin && metaCplTot<=EVENTO.cplAlvoMax ? 'good' : 'watch'));
     // Tabela: SOMENTE dados que o próprio Meta Ads reporta (mesmos números do gerenciador)
     var roasRows = metaItems.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
       var itCpa = (it.purchases||0)>0 ? (it.spend/it.purchases) : null;
+      var itCpl = (it.leads||0)>0 ? (it.spend/it.leads) : null;
       return '<tr><td style="color:var(--muted);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.campaign+'">'+it.campaign+'</td>'+
         '<td class="td-mono">'+fmt(it.spend)+'</td>'+
         '<td class="td-mono">'+fmt(it.revenue)+'</td>'+
         '<td class="td-mono">'+(it.purchases||0)+'</td>'+
+        '<td class="td-mono">'+(it.leads||0)+'</td>'+
+        '<td class="td-mono">'+(itCpl!==null?fmt(itCpl):'—')+'</td>'+
         '<td class="td-mono">'+(itCpa!==null?fmt(itCpa):'—')+'</td>'+
         '<td class="td-mono" style="color:'+(it.roas>=1?'var(--green)':(it.roas>0?'var(--amber)':'var(--muted)'))+'">'+(it.roas>0?it.roas.toFixed(2)+'x':'—')+'</td></tr>';
     }).join('');
@@ -723,8 +776,10 @@ function render(rows) {
           '<div class="kpi-card green"><div class="kpi-label">ROAS (Meta)</div><div class="kpi-value green">'+metaRoasTot.toFixed(2)+'x</div><div class="kpi-trend-lbl">retorno sobre o gasto</div></div>' +
           '<div class="kpi-card teal"><div class="kpi-label">Compras (Meta)</div><div class="kpi-value teal">'+metaPurchTot+'</div><div class="kpi-trend-lbl">conversões atribuídas</div></div>' +
           '<div class="kpi-card red"><div class="kpi-label">CPA médio</div><div class="kpi-value red">'+(metaCpaTot>0?fmt(metaCpaTot):'—')+'</div><div class="kpi-trend-lbl">custo por compra, gasto ÷ compras</div></div>' +
+          '<div class="kpi-card purple"><div class="kpi-label">Leads (Meta)</div><div class="kpi-value purple">'+metaLeadsTot.toLocaleString('pt-BR')+'</div><div class="kpi-trend-lbl">formulário + WhatsApp</div></div>' +
+          '<div class="kpi-card amber"><div class="kpi-label">CPL médio</div><div class="kpi-value amber">'+(metaLeadsTot>0?fmt(metaCplTot):'—')+'</div><div class="kpi-trend-lbl">'+alvoPill(cplStatus)+' · alvo R$'+EVENTO.cplAlvoMin+'–'+EVENTO.cplAlvoMax+'</div></div>' +
         '</div>' +
-        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita</th><th>Compras</th><th>CPA</th><th>ROAS</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="6" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita</th><th>Compras</th><th>Leads</th><th>CPL</th><th>CPA</th><th>ROAS</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="8" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
         '<div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Todos os números desta seção vêm direto da API do Meta Ads (gasto, receita, compras e ROAS atribuídos pelo próprio Meta). As vendas reais confirmadas no checkout estão nas seções abaixo, com base na planilha e nas UTMs.</div>' +
       '</div>';
   } else if (SCRIPT_URL_META) {
@@ -732,12 +787,96 @@ function render(rows) {
   }
   document.getElementById('meta-camp-filter-wrap').style.display = (metaAdsData && metaAdsData.items && metaAdsData.items.length) ? 'block' : 'none';
 
+  // ---- Ritmo de verba (usa o gasto do Meta no período selecionado no topo;
+  // pra bater com o total da campanha, selecione "Tudo") ----
+  var diaAtual = diaAtualCampanha();
+  var verbaGasta = metaSpendTot||0;
+  var verbaEsperada = diaAtual * EVENTO.verbaDiaria;
+  var pctVerbaUsada = EVENTO.verbaTotal>0 ? Math.min((verbaGasta/EVENTO.verbaTotal)*100,100) : 0;
+  var onPaceVerba = verbaEsperada>0 ? (verbaGasta<=verbaEsperada*1.15 && verbaGasta>=verbaEsperada*0.7) : true;
+  var isTudoPeriodo = (activePeriod===0 && !customRange);
+  var budgetStripHtml =
+    '<div class="card" style="margin-bottom:16px;padding:16px 20px">' +
+      '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">' +
+        '<div style="font-size:12.5px;color:var(--muted)">Verba principal: <strong style="color:var(--text);font-family:var(--mono)">'+fmt(verbaGasta)+'</strong> de '+fmt(EVENTO.verbaTotal)+' ('+pctVerbaUsada.toFixed(0)+'%) · dia <strong style="color:var(--text)">'+diaAtual+'</strong> de '+EVENTO.diasTotais+' · evento em '+EVENTO.dataEvento+' ('+EVENTO.local+')</div>' +
+        '<div style="display:flex;align-items:center;gap:10px"><div style="width:160px" class="progress-track"><div class="progress-fill" style="width:'+pctVerbaUsada+'%;background:'+(onPaceVerba?'var(--green)':'var(--amber)')+'"></div></div><span style="font-size:11px;color:var(--muted2)">ritmo esperado: '+fmt(verbaEsperada)+'</span></div>' +
+      '</div>' +
+      (isTudoPeriodo ? '' : '<div style="font-size:10.5px;color:var(--muted2);margin-top:8px">Gasto do período selecionado no topo. Selecione "Tudo" pra ver o acumulado real da campanha.</div>') +
+    '</div>';
+
+  // ---- Metas do evento: CAC/ROAS reais (tráfego pago) + alertas automáticos ----
+  var cacReal = vendasTrafegoAp>0 ? (verbaGasta/vendasTrafegoAp) : 0;
+  var roasReal = verbaGasta>0 ? (receitaTrafegoAp/verbaGasta) : 0;
+  var roasImplicito = EVENTO.ticket / EVENTO.cacAlvoMax;
+  var cacStatus = vendasTrafegoAp===0 ? 'idle' : (cacReal<=EVENTO.cacAlvoMax ? 'good' : 'watch');
+  var trafegoStatus = vendasTrafegoAp>=EVENTO.metaVendasTrafegoMin ? 'good' : (vendasTrafegoAp>0?'watch':'idle');
+  var totalVendasEvento = rows.filter(function(r){return normStatus(g(r,C.status)+' '+g(r,C.descStatus))==='aprovado';}).length;
+  var pctEvento = EVENTO.metaVendasTotalEvento>0 ? Math.min((totalVendasEvento/EVENTO.metaVendasTotalEvento)*100,100) : 0;
+
+  var alerts = [];
+  if ((metaLeadsTot||0)>0) {
+    alerts.push({status: cplStatus, texto: 'CPL geral em '+fmt(metaCplTot)+' — meta é R$'+EVENTO.cplAlvoMin+'–'+EVENTO.cplAlvoMax+(metaCplTot>EVENTO.cplAlerta?' (acima do alerta de R$'+EVENTO.cplAlerta+')':'.')});
+  }
+  if (vendasTrafegoAp>0) {
+    alerts.push({status: cacStatus, texto: 'CAC de tráfego em '+fmt(cacReal)+' — teto é '+fmt(EVENTO.cacAlvoMax)+' ('+vendasTrafegoAp+' venda'+(vendasTrafegoAp===1?'':'s')+' no período, amostra ainda pequena).'});
+  } else {
+    alerts.push({status:'idle', texto:'Nenhuma venda por tráfego pago confirmada ainda no período selecionado.'});
+  }
+  alerts.push({status: trafegoStatus, texto: 'Ingressos por tráfego: '+vendasTrafegoAp+' de '+EVENTO.metaVendasTrafegoMin+'–'+EVENTO.metaVendasTrafegoMax+' na meta do evento.'});
+  alerts.push({status: isTudoPeriodo?(onPaceVerba?'good':'watch'):'idle', texto: isTudoPeriodo ? ('Verba usada: '+pctVerbaUsada.toFixed(0)+'% do total, no dia '+diaAtual+' de '+EVENTO.diasTotais+' ('+((diaAtual/EVENTO.diasTotais)*100).toFixed(0)+'% do prazo).') : 'Selecione "Tudo" no período pra ver o alerta de ritmo de verba.'});
+  alerts.push({status: totalVendasEvento>0?(pctEvento>= (diaAtual/EVENTO.diasTotais*100) ? 'good':'watch'):'idle', texto: 'Vendas do evento (todas as fontes): '+totalVendasEvento+' de '+EVENTO.metaVendasTotalEvento+' ('+pctEvento.toFixed(0)+'%) no dia '+diaAtual+' de '+EVENTO.diasTotais+' ('+((diaAtual/EVENTO.diasTotais)*100).toFixed(0)+'% do prazo).'});
+
+  var metasEventoHtml =
+    '<div class="grid2">' +
+      '<div class="card">' +
+        '<div class="card-header"><div><div class="card-title">Tráfego pago — CAC e ROAS reais</div><div class="card-sub">gasto do Meta ÷ vendas confirmadas na planilha com origem paga (facebook/instagram)</div></div></div>' +
+        '<div class="kpi-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">' +
+          '<div class="kpi-card"><div class="kpi-label">CAC tráfego</div><div class="kpi-value" style="color:'+ALVO_STATUS[cacStatus].color+'">'+(vendasTrafegoAp>0?fmt(cacReal):'—')+'</div><div class="kpi-trend-lbl">'+alvoPill(cacStatus)+' · teto '+fmt(EVENTO.cacAlvoMax)+'</div></div>' +
+          '<div class="kpi-card"><div class="kpi-label">ROAS tráfego</div><div class="kpi-value" style="color:var(--text)">'+(verbaGasta>0?roasReal.toFixed(2)+'x':'—')+'</div><div class="kpi-trend-lbl">implícito p/ CAC-alvo: ≥ '+roasImplicito.toFixed(1)+'x</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-header"><div><div class="card-title">Meta geral do evento</div><div class="card-sub">todas as fontes (tráfego, reativação, indicação) — acumulado, não filtra por período</div></div></div>' +
+        '<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px">' +
+          '<div><span style="font-family:var(--mono);font-size:26px;font-weight:700">'+totalVendasEvento+'</span><span style="font-size:12px;color:var(--muted);margin-left:6px">de '+EVENTO.metaVendasTotalEvento+' ingressos</span></div>' +
+          '<span style="font-family:var(--mono);font-size:12px;color:var(--accent)">'+pctEvento.toFixed(0)+'%</span>' +
+        '</div>' +
+        '<div class="progress-track"><div class="progress-fill" style="width:'+pctEvento+'%"></div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="margin-top:14px">' +
+      '<div class="card-header"><div><div class="card-title">Alertas do dia</div><div class="card-sub">regras automáticas a partir dos alvos do briefing</div></div></div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px">' +
+        alerts.map(function(a){
+          var s = ALVO_STATUS[a.status]||ALVO_STATUS.idle;
+          return '<div style="display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:10px;background:'+s.bg+'"><span style="width:7px;height:7px;border-radius:50%;background:'+s.color+';margin-top:5px;flex-shrink:0"></span><span style="font-size:12px;color:var(--text);line-height:1.6">'+a.texto+'</span></div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+
+  // ---- Ritmo diário: gasto (Meta) x leads (Meta) x vendas (planilha) ----
+  var metaDaily = (metaAdsData && metaAdsData.daily) ? metaAdsData.daily : [];
+  var metaSpendByDate = {}, metaLeadsByDate = {};
+  metaDaily.forEach(function(d){ metaSpendByDate[d.date]=d.spend; metaLeadsByDate[d.date]=(metaLeadsByDate[d.date]||0)+ (d.leads||0); });
+  var allDatesSet = {};
+  dias.forEach(function(d){allDatesSet[d]=1;});
+  metaDaily.forEach(function(d){allDatesSet[d.date]=1;});
+  var allDates = Object.keys(allDatesSet).sort().slice(-30);
+  var allDatesLbl = allDates.map(function(d){var p=d.split('-');return p[2]+'/'+p[1];});
+  var gastoSerie = allDates.map(function(d){return metaSpendByDate[d]||0;});
+  var leadsSerie = allDates.map(function(d){return metaLeadsByDate[d]||0;});
+  var vendasSerieTraf = allDates.map(function(d){return porDia[d]?porDia[d].ap:0;});
+  var temSerieTrafego = metaDaily.length>0;
+
   document.getElementById('main-content').innerHTML =
 
     (semVendas ? '<div class="empty-box" style="margin-bottom:14px"><div style="font-size:14px;color:var(--text);margin-bottom:4px">📊 Nenhuma venda registrada ainda neste período</div><div>O dashboard abaixo já está pronto e vai preencher automaticamente assim que a Goexplosion registrar as primeiras transações. Linhas na planilha: '+rows.length+'.</div></div>' : '') +
 
     // ===== SEÇÃO: VISÃO GERAL =====
     sectionHead(ICON.visao,'Visão geral','panorama do período selecionado') +
+
+    // RITMO DE VERBA
+    budgetStripHtml +
 
     // BARRA DE META
     '<div class="meta-card">' +
@@ -767,8 +906,15 @@ function render(rows) {
     // ===== SEÇÃO: META ADS / ROAS =====
     (roasSection ? sectionHead(ICON.meta,'Meta Ads','desempenho reportado pelo Gerenciador de Anúncios') + roasSection : '') +
 
+    // ===== SEÇÃO: METAS DO EVENTO =====
+    sectionHead(ICON.meta,'Metas do evento','tráfego pago x meta geral, com alertas automáticos do briefing') +
+    metasEventoHtml +
+
     // ===== SEÇÃO: FATURAMENTO NO TEMPO =====
     sectionHead(ICON.tempo,'Faturamento no tempo','evolução diária e acumulada da receita') +
+    (temSerieTrafego ?
+      '<div class="card" style="margin-bottom:14px"><div class="card-header"><div><div class="card-title">Ritmo diário — gasto x leads x vendas</div><div class="card-sub">Meta Ads (gasto e leads) e planilha (vendas), lado a lado</div></div></div><div class="chart-wrap"><canvas id="trafegoChart"></canvas></div></div>'
+      : '') +
     '<div class="grid2">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Faturamento diário e acumulado</div><div class="card-sub">receita aprovada por dia + curva acumulada</div></div></div><div class="chart-wrap"><canvas id="recChart"></canvas></div></div>' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Pedidos por dia</div><div class="card-sub">aprovados vs cancelamentos</div></div></div><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>' +
@@ -884,6 +1030,35 @@ function render(rows) {
           x:{ticks:{color:'#AAB4C8',font:{size:10},maxTicksLimit:10},grid:{display:false},border:{display:false}},
           y:{position:'left',ticks:{color:'#AAB4C8',font:{size:10},callback:function(v){return fmtShort(v);}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false},beginAtZero:true},
           y2:{position:'right',ticks:{color:'#5b8cff',font:{size:10},callback:function(v){return fmtShort(v);}},grid:{drawOnChartArea:false},border:{display:false},beginAtZero:true}
+        }
+      }
+    });
+  }
+
+  // Gráfico de ritmo diário: gasto (Meta) + leads (Meta) + vendas por tráfego (planilha)
+  destroyChart('trafego');
+  var ctxTraf = document.getElementById('trafegoChart');
+  if (ctxTraf && temSerieTrafego && allDates.length) {
+    charts.trafego = new Chart(ctxTraf, {
+      data:{
+        labels:allDatesLbl,
+        datasets:[
+          {type:'bar',label:'Gasto (R$)',data:gastoSerie,backgroundColor:'rgba(255,122,26,0.55)',hoverBackgroundColor:'rgba(255,122,26,0.9)',borderRadius:4,yAxisID:'y',order:3},
+          {type:'line',label:'Leads',data:leadsSerie,borderColor:'#9B7EDE',backgroundColor:'rgba(155,126,222,0.10)',borderWidth:2,pointRadius:2,pointHoverRadius:5,tension:0.35,yAxisID:'y2',order:2},
+          {type:'line',label:'Vendas (tráfego)',data:vendasSerieTraf,borderColor:'#3ee08f',backgroundColor:'rgba(62,224,143,0.10)',borderWidth:2,pointRadius:2,pointHoverRadius:5,tension:0.35,yAxisID:'y2',order:1}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{color:'#C8D0E0',font:{size:11,family:'Inter'},boxWidth:10,padding:12}},
+          tooltip:{backgroundColor:'#0B2A5A',borderColor:'rgba(255,255,255,0.14)',borderWidth:1,titleColor:'#ffffff',bodyColor:'#C8D0E0',cornerRadius:8,padding:10}
+        },
+        scales:{
+          x:{ticks:{color:'#AAB4C8',font:{size:10},maxTicksLimit:10},grid:{display:false},border:{display:false}},
+          y:{position:'left',ticks:{color:'#AAB4C8',font:{size:10},callback:function(v){return fmtShort(v);}},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false},beginAtZero:true},
+          y2:{position:'right',ticks:{color:'#AAB4C8',font:{size:10}},grid:{drawOnChartArea:false},border:{display:false},beginAtZero:true}
         }
       }
     });
