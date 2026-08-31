@@ -472,6 +472,32 @@ function alvoPill(status, customLabel) {
   var s = ALVO_STATUS[status] || ALVO_STATUS.idle;
   return '<span style="display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:600;color:'+s.color+';background:'+s.bg+'">'+(customLabel||s.label)+'</span>';
 }
+// Funil simples de estágios sequenciais (cada um só pode ser <= o anterior).
+// Marca automaticamente o estágio com a PIOR taxa de conversão vindo do
+// anterior — esse é o gargalo a olhar primeiro.
+function renderFunil(stages) {
+  var valid = stages.filter(function(s){return s.value>0;});
+  if (valid.length<2) return '<div class="no-data">Ainda sem dados suficientes pra montar o funil neste período</div>';
+  var max = stages[0].value || 1;
+  var rates = stages.map(function(s,i){
+    if (i===0) return null;
+    var prev = stages[i-1].value;
+    return prev>0 ? (s.value/prev*100) : 0;
+  });
+  var worstIdx = -1, worstRate = 101;
+  rates.forEach(function(r,i){ if (r!==null && r<worstRate) { worstRate=r; worstIdx=i; } });
+  return stages.map(function(s,i){
+    var pct = max>0 ? Math.max((s.value/max*100),4) : 4;
+    var isBottleneck = (i===worstIdx);
+    var rateLabel = (i>0 && rates[i]!==null) ? '<span style="font-family:var(--mono);font-size:11px;color:'+(isBottleneck?'var(--red)':'var(--muted2)')+'">'+rates[i].toFixed(1)+'% do estágio anterior'+(isBottleneck?' · maior gargalo':'')+'</span>' : '<span></span>';
+    return '<div style="margin-bottom:11px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--muted);margin-bottom:5px"><span>'+s.label+'</span>'+rateLabel+'</div>' +
+      '<div style="height:28px;background:var(--bg3);border-radius:8px;overflow:hidden">' +
+        '<div style="height:100%;width:'+pct+'%;border-radius:8px;background:'+(isBottleneck?'var(--red)':'var(--accent)')+';display:flex;align-items:center;padding:0 10px;font-family:var(--mono);font-size:11.5px;font-weight:700;color:#fff;white-space:nowrap;transition:width .8s cubic-bezier(.16,1,.3,1)">'+Math.round(s.value).toLocaleString('pt-BR')+'</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
 function topN(obj,n) {
   return Object.entries(obj).sort(function(a,b){return b[1]-a[1];}).slice(0,n);
 }
@@ -755,6 +781,8 @@ function render(rows) {
     var metaCpaTot = metaPurchTot>0 ? (metaSpendTot/metaPurchTot) : 0;
     var metaCplTot = metaLeadsTot>0 ? (metaSpendTot/metaLeadsTot) : 0;
     var cplStatus = metaLeadsTot===0 ? 'idle' : (metaCplTot>EVENTO.cplAlerta ? 'critical' : (metaCplTot>=EVENTO.cplAlvoMin && metaCplTot<=EVENTO.cplAlvoMax ? 'good' : 'watch'));
+    var metaImpressionsTot = metaItems.reduce(function(s,i){return s+(i.impressions||0);},0);
+    var metaClicksTot = metaItems.reduce(function(s,i){return s+(i.clicks||0);},0);
     // Tabela: SOMENTE dados que o próprio Meta Ads reporta (mesmos números do gerenciador)
     var roasRows = metaItems.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
       var itCpa = (it.purchases||0)>0 ? (it.spend/it.purchases) : null;
@@ -826,7 +854,20 @@ function render(rows) {
   alerts.push({status: isTudoPeriodo?(onPaceVerba?'good':'watch'):'idle', texto: isTudoPeriodo ? ('Verba usada: '+pctVerbaUsada.toFixed(0)+'% do total, no dia '+diaAtual+' de '+EVENTO.diasTotais+' ('+((diaAtual/EVENTO.diasTotais)*100).toFixed(0)+'% do prazo).') : 'Selecione "Tudo" no período pra ver o alerta de ritmo de verba.'});
   alerts.push({status: totalVendasEvento>0?(pctEvento>= (diaAtual/EVENTO.diasTotais*100) ? 'good':'watch'):'idle', texto: 'Vendas do evento (todas as fontes): '+totalVendasEvento+' de '+EVENTO.metaVendasTotalEvento+' ('+pctEvento.toFixed(0)+'%) no dia '+diaAtual+' de '+EVENTO.diasTotais+' ('+((diaAtual/EVENTO.diasTotais)*100).toFixed(0)+'% do prazo).'});
 
+  var funilStages = [
+    {label:'Impressões (Meta)', value: metaImpressionsTot||0},
+    {label:'Cliques no link (Meta)', value: metaClicksTot||0},
+    {label:'Leads — form + WhatsApp (Meta)', value: metaLeadsTot||0},
+    {label:'Vendas por tráfego pago (planilha)', value: vendasTrafegoAp}
+  ];
+  var funilHtml =
+    '<div class="card" style="margin-bottom:14px">' +
+      '<div class="card-header"><div><div class="card-title">Funil de vendas — onde está o gargalo</div><div class="card-sub">impressão → clique → lead → venda, com a pior conversão destacada em vermelho</div></div></div>' +
+      renderFunil(funilStages) +
+    '</div>';
+
   var metasEventoHtml =
+    funilHtml +
     '<div class="grid2">' +
       '<div class="card">' +
         '<div class="card-header"><div><div class="card-title">Tráfego pago — CAC e ROAS reais</div><div class="card-sub">gasto do Meta ÷ vendas confirmadas na planilha com origem paga (facebook/instagram)</div></div></div>' +
