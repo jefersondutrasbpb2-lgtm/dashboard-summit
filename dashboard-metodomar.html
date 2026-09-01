@@ -475,6 +475,23 @@ function alvoPill(status, customLabel) {
 // Funil simples de estágios sequenciais (cada um só pode ser <= o anterior).
 // Marca automaticamente o estágio com a PIOR taxa de conversão vindo do
 // anterior — esse é o gargalo a olhar primeiro.
+// Mini-gráfico de tendência (SVG puro, sem dependência) pros cards de KPI.
+function sparkline(vals, color) {
+  if (!vals || vals.length<2) return '';
+  var w=100,h=28;
+  var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals);
+  var range=(max-min)||1;
+  var pts=vals.map(function(v,i){
+    var x=(i/(vals.length-1))*w;
+    var y=h-((v-min)/range)*(h-4)-2;
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  return '<svg width="100%" height="28" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="display:block;margin-top:8px;overflow:visible"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+// Pílula de estatística curta pras faixas "Distribuição" / "Desempenho".
+function statChip(label, value) {
+  return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;min-width:88px"><div style="font-size:9.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">'+label+'</div><div style="font-family:var(--mono);font-size:13.5px;font-weight:600;color:var(--text)">'+value+'</div></div>';
+}
 function renderFunil(stages) {
   var valid = stages.filter(function(s){return s.value>0;});
   if (valid.length<2) return '<div class="no-data">Ainda sem dados suficientes pra montar o funil neste período</div>';
@@ -783,31 +800,60 @@ function render(rows) {
     var cplStatus = metaLeadsTot===0 ? 'idle' : (metaCplTot>EVENTO.cplAlerta ? 'critical' : (metaCplTot>=EVENTO.cplAlvoMin && metaCplTot<=EVENTO.cplAlvoMax ? 'good' : 'watch'));
     var metaImpressionsTot = metaItems.reduce(function(s,i){return s+(i.impressions||0);},0);
     var metaClicksTot = metaItems.reduce(function(s,i){return s+(i.clicks||0);},0);
+    var metaReachTot = metaItems.reduce(function(s,i){return s+(i.reach||0);},0);
+    var metaFrequencyTot = metaReachTot>0 ? (metaImpressionsTot/metaReachTot) : 0;
+    var metaCtrTot = metaImpressionsTot>0 ? (metaClicksTot/metaImpressionsTot*100) : 0;
+    var metaCpcTot = metaClicksTot>0 ? (metaSpendTot/metaClicksTot) : 0;
+    var metaCpmTot = metaImpressionsTot>0 ? (metaSpendTot/metaImpressionsTot*1000) : 0;
+
+    // Sparklines dos 3 cards principais, a partir do ritmo diário do Meta
+    var metaDailyForSpark = (metaAdsData.daily||[]).slice(-14);
+    var sparkGasto = sparkline(metaDailyForSpark.map(function(d){return d.spend;}),'#FF8327');
+    var sparkLeads = sparkline(metaDailyForSpark.map(function(d){return d.leads;}),'#5b8cff');
+    var sparkCpl = sparkline(metaDailyForSpark.map(function(d){return d.leads>0?(d.spend/d.leads):0;}),'#9B7EDE');
+
     // Tabela: SOMENTE dados que o próprio Meta Ads reporta (mesmos números do gerenciador)
     var roasRows = metaItems.filter(function(it){return it.spend>0;}).sort(function(a,b){return b.spend-a.spend;}).map(function(it){
       var itCpa = (it.purchases||0)>0 ? (it.spend/it.purchases) : null;
       var itCpl = (it.leads||0)>0 ? (it.spend/it.leads) : null;
-      return '<tr><td style="color:var(--muted);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.campaign+'">'+it.campaign+'</td>'+
+      return '<tr><td style="color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.campaign+'">'+it.campaign+'</td>'+
         '<td class="td-mono">'+fmt(it.spend)+'</td>'+
         '<td class="td-mono">'+fmt(it.revenue)+'</td>'+
         '<td class="td-mono">'+(it.purchases||0)+'</td>'+
         '<td class="td-mono">'+(it.leads||0)+'</td>'+
         '<td class="td-mono">'+(itCpl!==null?fmt(itCpl):'—')+'</td>'+
         '<td class="td-mono">'+(itCpa!==null?fmt(itCpa):'—')+'</td>'+
+        '<td class="td-mono">'+Math.round(it.reach||0).toLocaleString('pt-BR')+'</td>'+
+        '<td class="td-mono">'+Math.round(it.impressions||0).toLocaleString('pt-BR')+'</td>'+
+        '<td class="td-mono">'+fmt(it.cpc||0)+'</td>'+
+        '<td class="td-mono">'+(it.ctr||0).toFixed(2)+'%</td>'+
         '<td class="td-mono" style="color:'+(it.roas>=1?'var(--green)':(it.roas>0?'var(--amber)':'var(--muted)'))+'">'+(it.roas>0?it.roas.toFixed(2)+'x':'—')+'</td></tr>';
     }).join('');
     roasSection =
       '<div class="card" style="margin-bottom:18px"><div class="card-header"><div><div class="card-title">Desempenho no Meta Ads</div><div class="card-sub">dados direto do Meta Ads — os mesmos números do Gerenciador de Anúncios'+(metaCampaignFilterSelected?' · filtrado por '+metaCampaignFilterSelected.size+' campanha(s)':'')+'</div></div></div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:20px;margin-bottom:18px">' +
+          '<div><div style="font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:7px">Distribuição</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+
+            statChip('Alcance', Math.round(metaReachTot).toLocaleString('pt-BR'))+
+            statChip('Impressões', Math.round(metaImpressionsTot).toLocaleString('pt-BR'))+
+            statChip('Frequência', metaFrequencyTot.toFixed(2))+
+            statChip('CPM', fmt(metaCpmTot))+
+          '</div></div>' +
+          '<div><div style="font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:7px">Desempenho</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+
+            statChip('Cliques', Math.round(metaClicksTot).toLocaleString('pt-BR'))+
+            statChip('CPC', fmt(metaCpcTot))+
+            statChip('CTR', metaCtrTot.toFixed(2)+'%')+
+          '</div></div>' +
+        '</div>' +
         '<div class="kpi-grid" style="margin-bottom:16px">' +
-          '<div class="kpi-card amber"><div class="kpi-label">Investimento (gasto)</div><div class="kpi-value amber">'+fmt(metaSpendTot)+'</div><div class="kpi-trend-lbl">período selecionado</div></div>' +
+          '<div class="kpi-card amber"><div class="kpi-label">Investimento (gasto)</div><div class="kpi-value amber">'+fmt(metaSpendTot)+'</div><div class="kpi-trend-lbl">período selecionado</div>'+sparkGasto+'</div>' +
           '<div class="kpi-card purple"><div class="kpi-label">Receita (Meta)</div><div class="kpi-value purple">'+fmt(metaRevTot)+'</div><div class="kpi-trend-lbl">atribuída pelo Meta</div></div>' +
           '<div class="kpi-card green"><div class="kpi-label">ROAS (Meta)</div><div class="kpi-value green">'+metaRoasTot.toFixed(2)+'x</div><div class="kpi-trend-lbl">retorno sobre o gasto</div></div>' +
           '<div class="kpi-card teal"><div class="kpi-label">Compras (Meta)</div><div class="kpi-value teal">'+metaPurchTot+'</div><div class="kpi-trend-lbl">conversões atribuídas</div></div>' +
           '<div class="kpi-card red"><div class="kpi-label">CPA médio</div><div class="kpi-value red">'+(metaCpaTot>0?fmt(metaCpaTot):'—')+'</div><div class="kpi-trend-lbl">custo por compra, gasto ÷ compras</div></div>' +
-          '<div class="kpi-card purple"><div class="kpi-label">Leads (Meta)</div><div class="kpi-value purple">'+metaLeadsTot.toLocaleString('pt-BR')+'</div><div class="kpi-trend-lbl">formulário + WhatsApp</div></div>' +
-          '<div class="kpi-card amber"><div class="kpi-label">CPL médio</div><div class="kpi-value amber">'+(metaLeadsTot>0?fmt(metaCplTot):'—')+'</div><div class="kpi-trend-lbl">'+alvoPill(cplStatus)+' · alvo R$'+EVENTO.cplAlvoMin+'–'+EVENTO.cplAlvoMax+'</div></div>' +
+          '<div class="kpi-card purple"><div class="kpi-label">Leads (Meta)</div><div class="kpi-value purple">'+metaLeadsTot.toLocaleString('pt-BR')+'</div><div class="kpi-trend-lbl">formulário + WhatsApp</div>'+sparkLeads+'</div>' +
+          '<div class="kpi-card amber"><div class="kpi-label">CPL médio</div><div class="kpi-value amber">'+(metaLeadsTot>0?fmt(metaCplTot):'—')+'</div><div class="kpi-trend-lbl">'+alvoPill(cplStatus)+' · alvo R$'+EVENTO.cplAlvoMin+'–'+EVENTO.cplAlvoMax+'</div>'+sparkCpl+'</div>' +
         '</div>' +
-        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita</th><th>Compras</th><th>Leads</th><th>CPL</th><th>CPA</th><th>ROAS</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="8" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Campanha (Meta)</th><th>Gasto</th><th>Receita</th><th>Compras</th><th>Leads</th><th>CPL</th><th>CPA</th><th>Alcance</th><th>Impr.</th><th>CPC</th><th>CTR</th><th>ROAS</th></tr></thead><tbody>'+(roasRows||'<tr><td colspan="12" class="no-data">Sem campanhas com gasto no período</td></tr>')+'</tbody></table></div>' +
         '<div style="font-size:11px;color:var(--muted2);margin-top:12px;line-height:1.6">Todos os números desta seção vêm direto da API do Meta Ads (gasto, receita, compras e ROAS atribuídos pelo próprio Meta). As vendas reais confirmadas no checkout estão nas seções abaixo, com base na planilha e nas UTMs.</div>' +
       '</div>';
   } else if (SCRIPT_URL_META) {
@@ -909,6 +955,14 @@ function render(rows) {
   var vendasSerieTraf = allDates.map(function(d){return porDia[d]?porDia[d].ap:0;});
   var temSerieTrafego = metaDaily.length>0;
 
+  // ---- Melhor dia (leads do Meta por dia da semana), mesmo componente colChart
+  // já usado pra "vendas por dia da semana" da planilha ----
+  var metaLeadsPorDiaSemana = [0,0,0,0,0,0,0];
+  metaDaily.forEach(function(d){
+    var dt = new Date(d.date+'T12:00:00');
+    if (!isNaN(dt)) metaLeadsPorDiaSemana[dt.getDay()] += (d.leads||0);
+  });
+
   document.getElementById('main-content').innerHTML =
 
     (semVendas ? '<div class="empty-box" style="margin-bottom:14px"><div style="font-size:14px;color:var(--text);margin-bottom:4px">📊 Nenhuma venda registrada ainda neste período</div><div>O dashboard abaixo já está pronto e vai preencher automaticamente assim que a Goexplosion registrar as primeiras transações. Linhas na planilha: '+rows.length+'.</div></div>' : '') +
@@ -954,7 +1008,10 @@ function render(rows) {
     // ===== SEÇÃO: FATURAMENTO NO TEMPO =====
     sectionHead(ICON.tempo,'Faturamento no tempo','evolução diária e acumulada da receita') +
     (temSerieTrafego ?
-      '<div class="card" style="margin-bottom:14px"><div class="card-header"><div><div class="card-title">Ritmo diário — gasto x leads x vendas</div><div class="card-sub">Meta Ads (gasto e leads) e planilha (vendas), lado a lado</div></div></div><div class="chart-wrap"><canvas id="trafegoChart"></canvas></div></div>'
+      '<div class="grid2" style="margin-bottom:14px">' +
+        '<div class="card"><div class="card-header"><div><div class="card-title">Ritmo diário — gasto x leads x vendas</div><div class="card-sub">Meta Ads (gasto e leads) e planilha (vendas), lado a lado</div></div></div><div class="chart-wrap"><canvas id="trafegoChart"></canvas></div></div>' +
+        '<div class="card"><div class="card-header"><div><div class="card-title">Melhor dia (leads)</div><div class="card-sub">leads do Meta por dia da semana</div></div></div>'+colChart(metaLeadsPorDiaSemana,dowLbl)+'</div>' +
+      '</div>'
       : '') +
     '<div class="grid2">' +
       '<div class="card"><div class="card-header"><div><div class="card-title">Faturamento diário e acumulado</div><div class="card-sub">receita aprovada por dia + curva acumulada</div></div></div><div class="chart-wrap"><canvas id="recChart"></canvas></div></div>' +

@@ -173,10 +173,52 @@ function doGet(e) {
     dayOrder.sort();
     var daily = dayOrder.map(function(d) { return byDay[d]; });
 
+    var totalImpressions = items.reduce(function(s, i) { return s + i.impressions; }, 0);
+
+    // ---- Alcance e frequência: NÃO dá pra somar dia a dia (contaria a mesma
+    // pessoa várias vezes e o número não bate com o Gerenciador). Por isso é
+    // uma segunda chamada, pro período inteiro de uma vez só, sem time_increment. ----
+    var reachUrl = 'https://graph.facebook.com/v21.0/' + actId + '/insights' +
+      '?level=campaign&limit=500&fields=campaign_name,reach,frequency' +
+      '&' + timeParam +
+      '&access_token=' + encodeURIComponent(token);
+    var reachByCampaign = {};
+    var totalReach = 0, totalFrequency = 0;
+    try {
+      var reachResp = UrlFetchApp.fetch(reachUrl, {muteHttpExceptions: true});
+      var reachBody = JSON.parse(reachResp.getContentText());
+      if (!reachBody.error) {
+        var reachData = reachBody.data || [];
+        if (campaignFilter) {
+          reachData = reachData.filter(function(row) {
+            return String(row.campaign_name || '').toLowerCase().indexOf(campaignFilter) >= 0;
+          });
+        }
+        reachData.forEach(function(row) {
+          reachByCampaign[row.campaign_name] = {
+            reach: parseFloat(row.reach || 0),
+            frequency: parseFloat(row.frequency || 0)
+          };
+        });
+        // Alcance total da conta/filtro: soma simples é uma aproximação (pode haver
+        // gente alcançada por mais de uma campanha), mas é o mesmo critério que o
+        // Gerenciador usa ao somar linhas de campanhas diferentes.
+        totalReach = reachData.reduce(function(s, r) { return s + parseFloat(r.reach || 0); }, 0);
+        totalFrequency = totalReach > 0 ? (totalImpressions / totalReach) : 0;
+      }
+    } catch (reachErr) {
+      // Se essa segunda chamada falhar, segue sem alcance/frequência em vez de
+      // quebrar o resto dos dados (que já vieram certos na primeira chamada).
+    }
+    items.forEach(function(it) {
+      var r = reachByCampaign[it.campaign];
+      it.reach = r ? r.reach : 0;
+      it.frequency = r ? r.frequency : 0;
+    });
+
     var totalSpend = items.reduce(function(s, i) { return s + i.spend; }, 0);
     var totalRevenue = items.reduce(function(s, i) { return s + i.revenue; }, 0);
     var totalPurchases = items.reduce(function(s, i) { return s + i.purchases; }, 0);
-    var totalImpressions = items.reduce(function(s, i) { return s + i.impressions; }, 0);
     var totalClicks = items.reduce(function(s, i) { return s + i.clicks; }, 0);
     var totalLeads = items.reduce(function(s, i) { return s + i.leads; }, 0);
 
@@ -189,6 +231,8 @@ function doGet(e) {
       totalImpressions: totalImpressions,
       totalClicks: totalClicks,
       totalLeads: totalLeads,
+      totalReach: totalReach,
+      totalFrequency: totalFrequency,
       totalRoas: totalSpend > 0 ? (totalRevenue / totalSpend) : 0,
       totalCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
       totalCpc: totalClicks > 0 ? (totalSpend / totalClicks) : 0,
