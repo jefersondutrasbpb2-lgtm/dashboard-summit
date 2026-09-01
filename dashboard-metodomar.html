@@ -644,7 +644,11 @@ function render(rows) {
 
   filtered.forEach(function(r) {
     var status = normStatus(g(r,C.status)+' '+g(r,C.descStatus));
-    var total = parseVal(g(r,C.total));
+    // Fallback: se as colunas de link de checkout vierem vazias nessa venda
+    // (produto sem recuperação de carrinho configurada), os valores da seção
+    // "Total detalhes do produto" (C.total) ficam deslocados e vêm em branco.
+    // Nesse caso usa o total da transação (C.totalCompra), que não é afetado.
+    var total = parseVal(g(r,C.total)) || parseVal(g(r,C.totalCompra));
     var qtdProduto = parseInt(g(r,C.quantidade)) || 1;
     var produto = g(r,C.produto)||'N/A';
     var source = g(r,C.utmSource)||'direto';
